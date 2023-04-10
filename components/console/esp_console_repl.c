@@ -493,10 +493,10 @@ static void esp_console_repl_task(void *args)
 
     /* This message shall be printed here and not earlier as the stdout
      * has just been set above. */
-    printf("\r\n"
-           "Type 'help' to get the list of commands.\r\n"
-           "Use UP/DOWN arrows to navigate through command history.\r\n"
-           "Press TAB when typing command name to auto-complete.\r\n");
+    //printf("\r\n"
+    //       "Type 'help' to get the list of commands.\r\n"
+    //       "Use UP/DOWN arrows to navigate through command history.\r\n"
+    //       "Press TAB when typing command name to auto-complete.\r\n");
 
     if (linenoiseIsDumbMode()) {
         printf("\r\n"
