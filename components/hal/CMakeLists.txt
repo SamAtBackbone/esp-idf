@@ -25,12 +25,8 @@ if(NOT ${target} STREQUAL "esp32" AND NOT CONFIG_APP_BUILD_TYPE_PURE_RAM_APP)
     list(APPEND srcs "cache_hal.c")
 endif()
 
-if(${target} STREQUAL "esp32h4")
-    if(CONFIG_IDF_TARGET_ESP32H4_BETA_VERSION_1)
-        list(APPEND includes "${target}/include/rev1")
-    elseif(CONFIG_IDF_TARGET_ESP32H4_BETA_VERSION_2)
-        list(APPEND includes "${target}/include/rev2")
-    endif()
+if(${target} STREQUAL "esp32c6")
+    list(APPEND srcs "esp32c6/lp_timer_hal.c")
 endif()
 
 if(NOT BOOTLOADER_BUILD)
@@ -219,13 +215,6 @@ if(NOT BOOTLOADER_BUILD)
               "spi_flash_hal_gpspi.c"
               "xt_wdt_hal.c"
               "esp32c3/rtc_cntl_hal.c")
-    endif()
-
-    if(${target} STREQUAL "esp32h4")
-        list(APPEND srcs
-            "spi_flash_hal_gpspi.c"
-            "aes_hal.c"
-            "esp32h4/rtc_cntl_hal.c")
     endif()
 
     if(${target} STREQUAL "esp32c2")

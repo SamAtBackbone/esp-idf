@@ -12,6 +12,10 @@ set(requires soc)
 # only esp_hw_support/adc_share_hw_ctrl.c requires efuse component
 set(priv_requires efuse spi_flash bootloader_support)
 
+if(${target} STREQUAL "esp32c6")
+    list(APPEND priv_requires hal)
+endif()
+
 set(srcs "cpu.c" "esp_memory_utils.c" "port/${IDF_TARGET}/cpu_region_protect.c")
 if(NOT BOOTLOADER_BUILD)
     list(APPEND srcs "esp_clk.c"
@@ -27,8 +31,8 @@ if(NOT BOOTLOADER_BUILD)
                      "regi2c_ctrl.c"
                      "esp_gpio_reserve.c"
                      "port/${target}/io_mux.c"
-                     "port/${target}/clk_tree.c"
-                     "port/clk_tree_common.c")
+                     "port/${target}/esp_clk_tree.c"
+                     "port/esp_clk_tree_common.c")
 
     if(CONFIG_SOC_ADC_SUPPORTED)
         list(APPEND srcs "adc_share_hw_ctrl.c")
@@ -75,6 +79,10 @@ if(NOT BOOTLOADER_BUILD)
 
     if(CONFIG_SOC_ETM_SUPPORTED)
         list(APPEND srcs "esp_etm.c")
+    endif()
+
+    if(CONFIG_SOC_CRYPTO_DPA_PROTECTION_SUPPORTED)
+        list(APPEND srcs "esp_dpa_protection.c")
     endif()
 
     if(CONFIG_SOC_DIG_SIGN_SUPPORTED)
@@ -132,6 +140,9 @@ add_subdirectory(port/${target})
 if(NOT BOOTLOADER_BUILD)
     if(CONFIG_SPIRAM)
         idf_component_optional_requires(PRIVATE esp_psram)
+    endif()
+    if(CONFIG_SOC_CRYPTO_DPA_PROTECTION_SUPPORTED)
+        target_link_libraries(${COMPONENT_LIB} PRIVATE "-u esp_crypto_dpa_prot_include_impl")
     endif()
 endif()
 

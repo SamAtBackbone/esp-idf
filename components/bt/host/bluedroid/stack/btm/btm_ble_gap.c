@@ -321,9 +321,9 @@ void BTM_BleRegiseterConnParamCallback(tBTM_UPDATE_CONN_PARAM_CBACK *update_conn
 ** Returns          void
 **
 *******************************************************************************/
-BOOLEAN BTM_BleUpdateAdvWhitelist(BOOLEAN add_remove, BD_ADDR remote_bda, tBLE_ADDR_TYPE addr_type, tBTM_ADD_WHITELIST_CBACK *add_wl_cb)
+BOOLEAN BTM_BleUpdateAdvWhitelist(BOOLEAN add_remove, BD_ADDR remote_bda, tBLE_ADDR_TYPE addr_type, tBTM_UPDATE_WHITELIST_CBACK *update_wl_cb)
 {
-    return btm_update_dev_to_white_list(add_remove, remote_bda, addr_type, add_wl_cb);
+    return btm_update_dev_to_white_list(add_remove, remote_bda, addr_type, update_wl_cb);
 }
 
 /*******************************************************************************
@@ -335,9 +335,9 @@ BOOLEAN BTM_BleUpdateAdvWhitelist(BOOLEAN add_remove, BD_ADDR remote_bda, tBLE_A
 ** Returns          void
 **
 *******************************************************************************/
-void BTM_BleClearWhitelist(void)
+void BTM_BleClearWhitelist(tBTM_UPDATE_WHITELIST_CBACK *update_wl_cb)
 {
-   btm_ble_clear_white_list();
+   btm_ble_clear_white_list(update_wl_cb);
 }
 
 /*******************************************************************************
@@ -1068,7 +1068,18 @@ uint32_t BTM_BleUpdateOwnType(uint8_t *own_bda_type, tBTM_START_ADV_CMPL_CBACK *
 #else
 uint32_t BTM_BleUpdateOwnType(uint8_t *own_bda_type, tBTM_START_ADV_CMPL_CBACK *cb)
 {
+    if((*own_bda_type == BLE_ADDR_RANDOM) || (*own_bda_type == BLE_ADDR_RANDOM_ID)) {
+        if((btm_cb.ble_ctr_cb.addr_mgnt_cb.exist_addr_bit & BTM_BLE_GAP_ADDR_BIT_RANDOM) != BTM_BLE_GAP_ADDR_BIT_RANDOM) {
+            BTM_TRACE_ERROR("No random address yet, please set random address and try\n");
+            if(cb) {
+                (* cb)(HCI_ERR_ESP_VENDOR_FAIL);
+            }
+            return BTM_ILLEGAL_VALUE;
+        }
+    }
+
     btm_cb.ble_ctr_cb.addr_mgnt_cb.own_addr_type = *own_bda_type;
+
     return BTM_SUCCESS;
 }
 #endif
@@ -1273,7 +1284,7 @@ BOOLEAN BTM_BleSetBgConnType(tBTM_BLE_CONN_TYPE   bg_conn_type,
 void BTM_BleClearBgConnDev(void)
 {
     btm_ble_start_auto_conn(FALSE);
-    btm_ble_clear_white_list();
+    btm_ble_clear_white_list(NULL);
     gatt_reset_bgdev_list();
 }
 
@@ -2226,9 +2237,10 @@ UINT8 *btm_ble_build_adv_data(tBTM_BLE_AD_MASK *p_data_mask, UINT8 **p_dst,
 #if BTM_MAX_LOC_BD_NAME_LEN > 0
         if (len > MIN_ADV_LENGTH && data_mask & BTM_BLE_AD_BIT_DEV_NAME) {
             if (strlen(btm_cb.cfg.bd_name) > (UINT16)(len - MIN_ADV_LENGTH)) {
-                *p++ = len - MIN_ADV_LENGTH + 1;
+                cp_len = (UINT16)(len - MIN_ADV_LENGTH);
+                *p++ = cp_len + 1;
                 *p++ = BTM_BLE_AD_TYPE_NAME_SHORT;
-                ARRAY_TO_STREAM(p, btm_cb.cfg.bd_name, len - MIN_ADV_LENGTH);
+                ARRAY_TO_STREAM(p, btm_cb.cfg.bd_name, cp_len);
             } else {
                 cp_len = (UINT16)strlen(btm_cb.cfg.bd_name);
                 *p++ = cp_len + 1;

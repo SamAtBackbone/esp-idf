@@ -264,6 +264,10 @@ void esp_phy_enable(void)
 #if SOC_PM_MODEM_RETENTION_BY_BACKUPDMA
             phy_digital_regs_load();
 #endif
+
+#if CONFIG_ESP_PHY_IMPROVE_RX_11B
+            phy_improve_rx_special(true);
+#endif
         }
 
 #if CONFIG_IDF_TARGET_ESP32
@@ -808,6 +812,11 @@ void esp_phy_load_cal_and_init(void)
     register_chipv7_phy(init_data, cal_data, PHY_RF_CAL_FULL);
 #endif
 
+#if CONFIG_ESP_PHY_IMPROVE_RX_11B
+    ESP_LOGW(TAG, "PHY enable improve rx 11b");
+    phy_improve_rx_special(true);
+#endif
+
 #if CONFIG_ESP_PHY_REDUCE_TX_POWER
     esp_phy_release_init_data(phy_init_data);
     free(init_data);
@@ -816,6 +825,9 @@ void esp_phy_load_cal_and_init(void)
 #endif
 
     ESP_ERROR_CHECK(esp_deep_sleep_register_hook(&phy_close_rf));
+#if !CONFIG_IDF_TARGET_ESP32
+    ESP_ERROR_CHECK(esp_deep_sleep_register_hook(&phy_xpd_tsens));
+#endif
 
     free(cal_data); // PHY maintains a copy of calibration data, so we can free this
 }

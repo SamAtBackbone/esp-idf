@@ -126,9 +126,9 @@ static inline pmu_sleep_param_config_t * pmu_sleep_param_config_default(
     param->lp_sys.digital_power_up_wait_cycle     = rtc_time_us_to_fastclk(mc->lp.power_up_wait_time_us, fastclk_period);
 
     if (power->hp_sys.xtal.xpd_xtal) {
-        param->hp_lp.xtal_stable_wait_cycle       = rtc_time_us_to_fastclk(mc->hp.xtal_wait_stable_time_us, fastclk_period);
-    } else {
         param->hp_lp.xtal_stable_wait_slow_clk_cycle = rtc_time_us_to_slowclk(mc->lp.xtal_wait_stable_time_us, slowclk_period);
+    } else {
+        param->hp_lp.xtal_stable_wait_cycle       = rtc_time_us_to_fastclk(mc->hp.xtal_wait_stable_time_us, fastclk_period);
     }
     return param;
 }
@@ -166,6 +166,19 @@ const pmu_sleep_config_t* pmu_sleep_config_default(
             analog_default.hp_sys.analog.xpd = 1;
             analog_default.hp_sys.analog.dbias = 2;
         }
+
+        if (!(pd_flags & PMU_SLEEP_PD_XTAL)){
+            analog_default.hp_sys.analog.xpd = 1;
+            analog_default.hp_sys.analog.pd_cur = 0;
+            analog_default.hp_sys.analog.bias_sleep = 0;
+            analog_default.hp_sys.analog.dbias = 25;
+
+            analog_default.lp_sys[LP(SLEEP)].analog.xpd = 1;
+            analog_default.lp_sys[LP(SLEEP)].analog.pd_cur = 0;
+            analog_default.lp_sys[LP(SLEEP)].analog.bias_sleep = 0;
+            analog_default.lp_sys[LP(SLEEP)].analog.dbias = 26;
+        }
+
         config->analog = analog_default;
     }
     return config;
@@ -273,14 +286,21 @@ uint32_t pmu_sleep_start(uint32_t wakeup_opt, uint32_t reject_opt, uint32_t lslp
     pmu_ll_hp_clear_wakeup_intr_status(PMU_instance()->hal->dev);
     pmu_ll_hp_clear_reject_intr_status(PMU_instance()->hal->dev);
     pmu_ll_hp_clear_reject_cause(PMU_instance()->hal->dev);
+    pmu_ll_hp_clear_sw_intr_status(PMU_instance()->hal->dev);
 
     /* Start entry into sleep mode */
     pmu_ll_hp_set_sleep_enable(PMU_instance()->hal->dev);
 
+    /* In pd_cpu lightsleep and deepsleep mode, we never get here */
     while (!pmu_ll_hp_is_sleep_wakeup(PMU_instance()->hal->dev) &&
         !pmu_ll_hp_is_sleep_reject(PMU_instance()->hal->dev)) {
         ;
     }
 
-    return ESP_OK;
+    return pmu_sleep_finish();
+}
+
+bool pmu_sleep_finish(void)
+{
+    return pmu_ll_hp_is_sleep_reject(PMU_instance()->hal->dev);
 }

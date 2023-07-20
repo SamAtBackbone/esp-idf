@@ -13,7 +13,7 @@
 #define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
 #endif
 #include "freertos/FreeRTOS.h"
-#include "clk_tree.h"
+#include "esp_clk_tree.h"
 #include "esp_types.h"
 #include "esp_attr.h"
 #include "esp_check.h"
@@ -116,8 +116,8 @@ esp_err_t ana_cmpr_new_unit(const ana_cmpr_config_t *config, ana_cmpr_handle_t *
 #endif
 
     /* Analog clock comes from IO MUX, but IO MUX clock might be shared with other submodules as well */
-    ESP_GOTO_ON_ERROR(clk_tree_src_get_freq_hz((soc_module_clk_t)config->clk_src,
-                                                CLK_TREE_SRC_FREQ_PRECISION_CACHED,
+    ESP_GOTO_ON_ERROR(esp_clk_tree_src_get_freq_hz((soc_module_clk_t)config->clk_src,
+                                                ESP_CLK_TREE_SRC_FREQ_PRECISION_CACHED,
                                                 &s_ana_cmpr[unit]->src_clk_freq_hz),
                                                 err, TAG, "get source clock frequency failed");
     ESP_GOTO_ON_ERROR(io_mux_set_clock_source((soc_module_clk_t)(config->clk_src)), err, TAG,
@@ -155,14 +155,14 @@ esp_err_t ana_cmpr_del_unit(ana_cmpr_handle_t cmpr)
 {
     ANA_CMPR_NULL_POINTER_CHECK(cmpr);
     /* Search the global object array to check if the input handle is valid */
-    ana_cmpr_unit_t unit = -1;
+    int unit = -1;
     for (int i = 0; i < SOC_ANA_CMPR_NUM; i++) {
         if (s_ana_cmpr[i] == cmpr) {
             unit = i;
             break;
         }
     }
-    ESP_RETURN_ON_FALSE(unit >= ANA_CMPR_UNIT_0, ESP_ERR_INVALID_ARG, TAG, "wrong analog comparator handle");
+    ESP_RETURN_ON_FALSE(unit != -1, ESP_ERR_INVALID_ARG, TAG, "wrong analog comparator handle");
     ESP_RETURN_ON_FALSE(!cmpr->is_enabled, ESP_ERR_INVALID_STATE, TAG, "this analog comparator unit not disabled yet");
 
     /* Delete the pm lock if the unit has */

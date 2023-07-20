@@ -55,6 +55,7 @@ INPUT = \
     $(PROJECT_PATH)/components/bt/host/bluedroid/api/include/api/esp_hf_client_api.h \
     $(PROJECT_PATH)/components/bt/host/bluedroid/api/include/api/esp_hf_defs.h \
     $(PROJECT_PATH)/components/bt/host/bluedroid/api/include/api/esp_hidd_api.h \
+    $(PROJECT_PATH)/components/bt/host/bluedroid/api/include/api/esp_hidh_api.h \
     $(PROJECT_PATH)/components/bt/host/bluedroid/api/include/api/esp_l2cap_bt_api.h \
     $(PROJECT_PATH)/components/bt/host/bluedroid/api/include/api/esp_sdp_api.h \
     $(PROJECT_PATH)/components/bt/host/bluedroid/api/include/api/esp_spp_api.h \
@@ -137,7 +138,7 @@ INPUT = \
     $(PROJECT_PATH)/components/esp_http_server/include/esp_http_server.h \
     $(PROJECT_PATH)/components/esp_https_ota/include/esp_https_ota.h \
     $(PROJECT_PATH)/components/esp_https_server/include/esp_https_server.h \
-    $(PROJECT_PATH)/components/esp_hw_support/include/clk_tree.h \
+    $(PROJECT_PATH)/components/esp_hw_support/include/esp_clk_tree.h \
     $(PROJECT_PATH)/components/esp_hw_support/include/esp_async_memcpy.h \
     $(PROJECT_PATH)/components/esp_hw_support/include/esp_chip_info.h \
     $(PROJECT_PATH)/components/esp_hw_support/include/esp_cpu.h \
@@ -191,6 +192,7 @@ INPUT = \
     $(PROJECT_PATH)/components/fatfs/diskio/diskio_sdmmc.h \
     $(PROJECT_PATH)/components/fatfs/diskio/diskio_wl.h \
     $(PROJECT_PATH)/components/fatfs/vfs/esp_vfs_fat.h \
+    $(PROJECT_PATH)/components/freertos/esp_additions/include/freertos/idf_additions.h \
     $(PROJECT_PATH)/components/freertos/FreeRTOS-Kernel/include/freertos/event_groups.h \
     $(PROJECT_PATH)/components/freertos/FreeRTOS-Kernel/include/freertos/message_buffer.h \
     $(PROJECT_PATH)/components/freertos/FreeRTOS-Kernel/include/freertos/queue.h \

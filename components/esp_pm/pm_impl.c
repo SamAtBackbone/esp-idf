@@ -31,6 +31,10 @@
 #include "xtensa/core-macros.h"
 #endif
 
+#if SOC_SPI_MEM_SUPPORT_TIME_TUNING
+#include "esp_private/mspi_timing_tuning.h"
+#endif
+
 #include "esp_private/pm_impl.h"
 #include "esp_private/pm_trace.h"
 #include "esp_private/esp_timer_private.h"
@@ -72,8 +76,6 @@
 /* Minimal divider at which REF_CLK_FREQ can be obtained */
 #define REF_CLK_DIV_MIN 2         // TODO: IDF-5660
 #elif CONFIG_IDF_TARGET_ESP32C3
-#define REF_CLK_DIV_MIN 2
-#elif CONFIG_IDF_TARGET_ESP32H4
 #define REF_CLK_DIV_MIN 2
 #elif CONFIG_IDF_TARGET_ESP32C2
 #define REF_CLK_DIV_MIN 2
@@ -158,6 +160,7 @@ static const char* s_mode_names[] = {
         "APB_MAX",
         "CPU_MAX"
 };
+static uint32_t s_light_sleep_counts, s_light_sleep_reject_counts;
 #endif // WITH_PROFILING
 
 #ifdef CONFIG_FREERTOS_SYSTICK_USES_CCOUNT
@@ -476,7 +479,17 @@ static void IRAM_ATTR do_switch(pm_mode_t new_mode)
         if (switch_down) {
             on_freq_update(old_ticks_per_us, new_ticks_per_us);
         }
-        rtc_clk_cpu_freq_set_config_fast(&new_config);
+       if (new_config.source == SOC_CPU_CLK_SRC_PLL) {
+            rtc_clk_cpu_freq_set_config_fast(&new_config);
+#if SOC_SPI_MEM_SUPPORT_TIME_TUNING
+            mspi_timing_change_speed_mode_cache_safe(false);
+#endif
+        } else {
+#if SOC_SPI_MEM_SUPPORT_TIME_TUNING
+            mspi_timing_change_speed_mode_cache_safe(true);
+#endif
+            rtc_clk_cpu_freq_set_config_fast(&new_config);
+        }
         if (!switch_down) {
             on_freq_update(old_ticks_per_us, new_ticks_per_us);
         }
@@ -614,7 +627,13 @@ void IRAM_ATTR vApplicationSleep( TickType_t xExpectedIdleTime )
             /* Enter sleep */
             ESP_PM_TRACE_ENTER(SLEEP, core_id);
             int64_t sleep_start = esp_timer_get_time();
-            esp_light_sleep_start();
+            if (esp_light_sleep_start() != ESP_OK){
+#ifdef WITH_PROFILING
+                s_light_sleep_reject_counts++;
+            } else {
+                s_light_sleep_counts++;
+#endif
+            }
             int64_t slept_us = esp_timer_get_time() - sleep_start;
             ESP_PM_TRACE_EXIT(SLEEP, core_id);
 
@@ -654,6 +673,9 @@ void esp_pm_impl_dump_stats(FILE* out)
     pm_time_t last_mode_change_time = s_last_mode_change_time;
     pm_mode_t cur_mode = s_mode;
     pm_time_t now = pm_get_time();
+    bool light_sleep_en = s_light_sleep_en;
+    uint32_t light_sleep_counts = s_light_sleep_counts;
+    uint32_t light_sleep_reject_counts = s_light_sleep_reject_counts;
     portEXIT_CRITICAL_ISR(&s_switch_lock);
 
     time_in_mode[cur_mode] += now - last_mode_change_time;
@@ -661,7 +683,7 @@ void esp_pm_impl_dump_stats(FILE* out)
     fprintf(out, "\nMode stats:\n");
     fprintf(out, "%-8s  %-10s  %-10s  %-10s\n", "Mode", "CPU_freq", "Time(us)", "Time(%)");
     for (int i = 0; i < PM_MODE_COUNT; ++i) {
-        if (i == PM_MODE_LIGHT_SLEEP && !s_light_sleep_en) {
+        if (i == PM_MODE_LIGHT_SLEEP && !light_sleep_en) {
             /* don't display light sleep mode if it's not enabled */
             continue;
         }
@@ -671,6 +693,10 @@ void esp_pm_impl_dump_stats(FILE* out)
                 "",                                     //Empty space to align columns
                 time_in_mode[i],
                 (int) (time_in_mode[i] * 100 / now));
+    }
+    if (light_sleep_en){
+        fprintf(out, "\nSleep stats:\n");
+        fprintf(out, "light_sleep_counts:%ld  light_sleep_reject_counts:%ld\n", light_sleep_counts, light_sleep_reject_counts);
     }
 }
 #endif // WITH_PROFILING

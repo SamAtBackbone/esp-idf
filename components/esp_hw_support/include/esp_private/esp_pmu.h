@@ -51,6 +51,9 @@ extern "C" {
 #define RTC_UART1_TRIG_EN           PMU_UART1_WAKEUP_EN     //!< UART1 wakeup (light sleep only)
 #define RTC_BT_TRIG_EN              PMU_BLE_SOC_WAKEUP_EN   //!< BT wakeup (light sleep only)
 #define RTC_USB_TRIG_EN             PMU_USB_WAKEUP_EN
+#if SOC_LP_CORE_SUPPORTED
+#define RTC_LP_CORE_TRIG_EN         PMU_LP_CORE_WAKEUP_EN   //!< LP core wakeup
+#endif //SOC_LP_CORE_SUPPORTED
 #define RTC_XTAL32K_DEAD_TRIG_EN    0 // TODO
 #define RTC_BROWNOUT_DET_TRIG_EN    0 // TODO
 
@@ -82,6 +85,9 @@ extern "C" {
 #define PMU_UART1_WAKEUP_EN         BIT(7)
 #define PMU_SDIO_WAKEUP_EN          BIT(8)
 #define PMU_BLE_SOC_WAKEUP_EN       BIT(10)
+#if SOC_LP_CORE_SUPPORTED
+#define PMU_LP_CORE_WAKEUP_EN       BIT(11)
+#endif //SOC_LP_CORE_SUPPORTED
 #define PMU_USB_WAKEUP_EN           BIT(14)
 
 
@@ -227,6 +233,12 @@ void pmu_sleep_init(const pmu_sleep_config_t *config, bool dslp);
  * @return non-zero if sleep was rejected by hardware
  */
 uint32_t pmu_sleep_start(uint32_t wakeup_opt, uint32_t reject_opt, uint32_t lslp_mem_inf_fpu, bool dslp);
+
+/**
+ * @brief   Finish sleep process settings and get sleep reject status
+ * @return  return sleep reject status
+ */
+bool pmu_sleep_finish(void);
 
 /**
  * @brief Initialize PMU related power/clock/digital parameters and functions

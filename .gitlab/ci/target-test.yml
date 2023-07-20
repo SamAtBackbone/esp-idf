@@ -504,6 +504,14 @@ pytest_examples_esp32h2_adc:
     - build_pytest_examples_esp32h2
   tags: [ esp32h2, adc ]
 
+example_test_pytest_esp32s3_emmc:
+  extends:
+    - .pytest_examples_dir_template
+    - .rules:test:example_test-esp32s3
+  needs:
+    - build_pytest_examples_esp32s3
+  tags: [ esp32s3, emmc ]
+
 .pytest_components_dir_template:
   extends: .pytest_template
   variables:
@@ -1215,18 +1223,11 @@ UT_006:
     - UT_T1_SPIMODE
     - psram
 
-UT_017:
+.UT_017:
   extends: .unit_test_esp32_template
   tags:
     - ESP32_IDF
     - EMMC
-
-UT_022:
-  extends: .unit_test_esp32_template
-  tags:
-    - ESP32_IDF
-    - UT_T2_I2C
-    - psram
 
 UT_028:
   extends: .unit_test_esp32_template
@@ -1299,12 +1300,6 @@ UT_C3_FLASH:
   tags:
     - ESP32C3_IDF
     - UT_T1_ESP_FLASH
-
-UT_C3_I2C:
-  extends: .unit_test_esp32c3_template
-  tags:
-    - ESP32C3_IDF
-    - UT_T2_I2C
 
 UT_C3_SDSPI:
   extends:

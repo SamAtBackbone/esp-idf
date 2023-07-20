@@ -71,6 +71,10 @@ config SOC_SUPPORTS_SECURE_DL_MODE
     bool
     default y
 
+config SOC_ULP_SUPPORTED
+    bool
+    default y
+
 config SOC_LP_CORE_SUPPORTED
     bool
     default y
@@ -179,6 +183,10 @@ config SOC_LP_AON_SUPPORTED
     bool
     default y
 
+config SOC_LP_I2C_SUPPORTED
+    bool
+    default y
+
 config SOC_XTAL_SUPPORT_40M
     bool
     default y
@@ -277,7 +285,15 @@ config SOC_ADC_RTC_MAX_BITWIDTH
 
 config SOC_ADC_CALIBRATION_V1_SUPPORTED
     bool
-    default n
+    default y
+
+config SOC_ADC_SELF_HW_CALI_SUPPORTED
+    bool
+    default y
+
+config SOC_ADC_CALIB_CHAN_COMPENS_SUPPORTED
+    bool
+    default y
 
 config SOC_ADC_TEMPERATURE_SHARE_INTR
     bool
@@ -470,6 +486,14 @@ config SOC_I2C_SUPPORT_XTAL
 config SOC_I2C_SUPPORT_RTC
     bool
     default y
+
+config SOC_LP_I2C_NUM
+    int
+    default 1
+
+config SOC_LP_I2C_FIFO_LEN
+    int
+    default 16
 
 config SOC_I2S_NUM
     int
@@ -1019,6 +1043,10 @@ config SOC_FLASH_ENCRYPTION_XTS_AES_128
     bool
     default y
 
+config SOC_CRYPTO_DPA_PROTECTION_SUPPORTED
+    bool
+    default y
+
 config SOC_UART_NUM
     int
     default 2
@@ -1131,6 +1159,10 @@ config SOC_PM_MODEM_RETENTION_BY_REGDMA
     bool
     default y
 
+config SOC_PM_RETENTION_HAS_CLOCK_BUG
+    bool
+    default y
+
 config SOC_PM_PAU_LINK_NUM
     int
     default 4
@@ -1216,5 +1248,9 @@ config SOC_BLE_DEVICE_PRIVACY_SUPPORTED
     default y
 
 config SOC_BLE_POWER_CONTROL_SUPPORTED
+    bool
+    default y
+
+config SOC_BLUFI_SUPPORTED
     bool
     default y
