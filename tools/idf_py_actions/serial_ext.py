@@ -126,7 +126,7 @@ def action_extensions(base_actions: Dict, project_path: str) -> Dict:
 
         target_arch_riscv = get_sdkconfig_value(project_desc['config_file'], 'CONFIG_IDF_TARGET_ARCH_RISCV')
         monitor_args += ['--target', project_desc['target']]
-        revision = project_desc.get('rev')
+        revision = project_desc.get('min_rev')
         if revision:
             monitor_args += ['--revision', revision]
 
@@ -184,7 +184,7 @@ def action_extensions(base_actions: Dict, project_path: str) -> Dict:
         if extra_args:
             extra += shlex.split(extra_args)
         env = {'ESPBAUD': str(args.baud), 'ESPPORT': args.port, 'SERIAL_TOOL_EXTRA_ARGS': ';'.join(extra)}
-        run_target(action, args, env)
+        run_target(action, args, env, force_progression=True)
 
     def erase_flash(action: str, ctx: click.core.Context, args: PropertyDict) -> None:
         ensure_build_directory(args, ctx.info_name)

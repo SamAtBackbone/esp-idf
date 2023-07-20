@@ -270,7 +270,11 @@ class RunTool:
             p = await asyncio.create_subprocess_exec(*cmd, env=env_copy, limit=1024 * 256, cwd=self.cwd, stdout=asyncio.subprocess.PIPE,
                                                      stderr=asyncio.subprocess.PIPE)
         except NotImplementedError:
-            sys.exit(f'ERROR: {sys.executable} doesn\'t support asyncio. The issue can be worked around by re-running idf.py with the "--no-hints" argument.')
+            message = f'ERROR: {sys.executable} doesn\'t support asyncio. The issue can be worked around by re-running idf.py with the "--no-hints" argument.'
+            if sys.platform == 'win32':
+                message += ' To fix the issue use the Windows Installer for setting up your python environment, ' \
+                    'available from: https://dl.espressif.com/dl/esp-idf/'
+            sys.exit(message)
 
         stderr_output_file = os.path.join(self.build_dir, log_dir_name, f'idf_py_stderr_output_{p.pid}')
         stdout_output_file = os.path.join(self.build_dir, log_dir_name, f'idf_py_stdout_output_{p.pid}')
@@ -292,6 +296,12 @@ class RunTool:
             # Print a new line on top of the previous line
             print('\r' + fit_text_in_terminal(output.strip('\n\r')) + '\x1b[K', end='', file=output_stream)
             output_stream.flush()
+
+        def is_progression(output: str) -> bool:
+            # try to find possible progression by a pattern match
+            if re.match(r'^\[\d+/\d+\]|.*\(\d+ \%\)$', output):
+                return True
+            return False
 
         async def read_stream() -> Optional[str]:
             try:
@@ -324,6 +334,8 @@ class RunTool:
         # used in interactive mode to print hints after matched line
         hints = load_hints()
         last_line = ''
+        is_progression_last_line = False
+        is_progression_processing_enabled = self.force_progression and output_stream.isatty() and '-v' not in self.args
 
         try:
             with open(output_filename, 'w', encoding='utf8') as output_file:
@@ -344,10 +356,13 @@ class RunTool:
                     if not output_stream.isatty():
                         output = output_noescape
 
-                    if self.force_progression and output[0] == '[' and '-v' not in self.args and output_stream.isatty():
-                        # print output in progression way but only the progression related (that started with '[') and if verbose flag is not set
+                    if is_progression_processing_enabled and is_progression(output):
                         print_progression(output)
+                        is_progression_last_line = True
                     else:
+                        if is_progression_last_line:
+                            output_converter.write(os.linesep)
+                            is_progression_last_line = False
                         output_converter.write(output)
                         output_converter.flush()
 

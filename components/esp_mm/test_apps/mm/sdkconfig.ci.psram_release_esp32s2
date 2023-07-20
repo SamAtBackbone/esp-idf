@@ -1,4 +1,8 @@
+<<<<<<<< HEAD:components/esp_mm/test_apps/mm/sdkconfig.ci.psram_release_esp32s2
 CONFIG_IDF_TARGET="esp32s2"
+========
+CONFIG_IDF_TARGET="esp32"
+>>>>>>>> a2d76ad38ad4be46bdc7ce2becab45fbe71ecc48:components/esp_mm/test_apps/mm/sdkconfig.ci.psram_release_esp32
 CONFIG_COMPILER_OPTIMIZATION_SIZE=y
 CONFIG_BOOTLOADER_COMPILER_OPTIMIZATION_SIZE=y
 CONFIG_COMPILER_OPTIMIZATION_ASSERTIONS_SILENT=y

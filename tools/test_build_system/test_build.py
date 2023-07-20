@@ -128,3 +128,53 @@ def test_build_with_sdkconfig_build_abspath(idf_py: IdfPyFunc, test_app_copy: Pa
     build_path = test_app_copy / 'build_tmp'
     sdkconfig_path = build_path / 'sdkconfig'
     idf_py('-D', f'SDKCONFIG={sdkconfig_path}', '-B', str(build_path), 'build')
+
+
+def test_build_fail_on_build_time(idf_py: IdfPyFunc, test_app_copy: Path) -> None:
+    logging.info('Fail on build time works')
+    append_to_file(test_app_copy / 'CMakeLists.txt', '\n'.join(['',
+                                                                'if(NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/hello.txt")',
+                                                                'fail_at_build_time(test_file "hello.txt does not exists")',
+                                                                'endif()']))
+    ret = idf_py('build', check=False)
+    assert ret.returncode != 0, 'Build should fail if requirements are not satisfied'
+    (test_app_copy / 'hello.txt').touch()
+    idf_py('build')
+
+
+@pytest.mark.usefixtures('test_app_copy')
+def test_build_dfu(idf_py: IdfPyFunc) -> None:
+    logging.info('DFU build works')
+    ret = idf_py('dfu', check=False)
+    assert 'command "dfu" is not known to idf.py and is not a Ninja target' in ret.stderr, 'DFU build should fail for default chip target'
+    idf_py('set-target', 'esp32s2')
+    ret = idf_py('dfu')
+    assert 'build/dfu.bin" has been written. You may proceed with DFU flashing.' in ret.stdout, 'DFU build should succeed for esp32s2'
+    assert_built(BOOTLOADER_BINS + APP_BINS + PARTITION_BIN + ['build/dfu.bin'])
+
+
+@pytest.mark.usefixtures('test_app_copy')
+def test_build_uf2(idf_py: IdfPyFunc) -> None:
+    logging.info('UF2 build works')
+    ret = idf_py('uf2')
+    assert 'build/uf2.bin" has been written.' in ret.stdout, 'UF2 build should work for esp32'
+    assert_built(BOOTLOADER_BINS + APP_BINS + PARTITION_BIN + ['build/uf2.bin'])
+    ret = idf_py('uf2-app')
+    assert 'build/uf2-app.bin" has been written.' in ret.stdout, 'UF2 build should work for application binary'
+    assert_built(['build/uf2-app.bin'])
+    idf_py('set-target', 'esp32s2')
+    ret = idf_py('uf2')
+    assert 'build/uf2.bin" has been written.' in ret.stdout, 'UF2 build should work for esp32s2'
+    assert_built(BOOTLOADER_BINS + APP_BINS + PARTITION_BIN + ['build/uf2.bin'])
+
+
+def test_build_loadable_elf(idf_py: IdfPyFunc, test_app_copy: Path) -> None:
+    logging.info('Loadable ELF build works')
+    (test_app_copy / 'sdkconfig').write_text('\n'.join(['CONFIG_APP_BUILD_TYPE_RAM=y',
+                                                        'CONFIG_VFS_SUPPORT_TERMIOS=n',
+                                                        'CONFIG_NEWLIB_NANO_FORMAT=y',
+                                                        'CONFIG_ESP_SYSTEM_PANIC_PRINT_HALT=y',
+                                                        'CONFIG_ESP_ERR_TO_NAME_LOOKUP=n']))
+    idf_py('reconfigure')
+    assert (test_app_copy / 'build' / 'flasher_args.json').exists(), 'flasher_args.json should be generated in a loadable ELF build'
+    idf_py('build')

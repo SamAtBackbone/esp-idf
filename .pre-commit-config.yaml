@@ -143,7 +143,7 @@ repos:
         require_serial: true
         additional_dependencies:
           - PyYAML == 5.3.1
-          - idf_build_apps
+          - idf_build_apps~=1.0
       - id: sort-build-test-rules-ymls
         name: sort .build-test-rules.yml files
         entry: tools/ci/check_build_test_rules.py sort-yaml
@@ -152,6 +152,12 @@ repos:
         additional_dependencies:
           - PyYAML == 5.3.1
           - ruamel.yaml
+      - id: submodule-sbom-hash-check
+        name: Check if sbom-hash values for submodules in .gitmodules match submodules checkout hash in git tree
+        entry: python tools/test_sbom/test_submodules.py
+        language: python
+        always_run: true
+        pass_filenames: false
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.0.1
     hooks:
@@ -162,3 +168,8 @@ repos:
     hooks:
       - id: check-copyright
         args: ['--ignore', 'tools/ci/check_copyright_ignore.txt', '--config', 'tools/ci/check_copyright_config.yaml']
+  - repo: https://github.com/espressif/conventional-precommit-linter
+    rev: v1.2.0
+    hooks:
+      - id: conventional-precommit-linter
+        stages: [commit-msg]

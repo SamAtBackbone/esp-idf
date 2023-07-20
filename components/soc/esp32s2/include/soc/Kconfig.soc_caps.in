@@ -171,6 +171,10 @@ config SOC_BOD_SUPPORTED
     bool
     default y
 
+config SOC_CLK_TREE_SUPPORTED
+    bool
+    default y
+
 config SOC_XTAL_SUPPORT_40M
     bool
     default y
@@ -240,6 +244,10 @@ config SOC_ADC_DIGI_RESULT_BYTES
     default 2
 
 config SOC_ADC_DIGI_DATA_BYTES_PER_CONV
+    int
+    default 2
+
+config SOC_ADC_DIGI_MONITOR_NUM
     int
     default 2
 
@@ -366,6 +374,10 @@ config SOC_I2C_NUM
 config SOC_I2C_FIFO_LEN
     int
     default 32
+
+config SOC_I2C_CMD_REG_NUM
+    int
+    default 16
 
 config SOC_I2C_SUPPORT_SLAVE
     bool
@@ -747,6 +759,10 @@ config SOC_UART_NUM
     int
     default 2
 
+config SOC_UART_HP_NUM
+    int
+    default 2
+
 config SOC_UART_SUPPORT_WAKEUP_INT
     bool
     default y
@@ -826,6 +842,14 @@ config SOC_SHA_SUPPORT_SHA512_256
 config SOC_SHA_SUPPORT_SHA512_T
     bool
     default y
+
+config SOC_MPI_MEM_BLOCKS_NUM
+    int
+    default 4
+
+config SOC_MPI_OPERATIONS_NUM
+    int
+    default 3
 
 config SOC_RSA_MAX_BIT_LEN
     int
@@ -939,10 +963,6 @@ config SOC_SPI_MEM_SUPPORT_AUTO_WAIT_IDLE
     bool
     default y
 
-config SOC_SPI_MEM_SUPPORT_AUTO_SUSPEND
-    bool
-    default y
-
 config SOC_SPI_MEM_SUPPORT_SW_SUSPEND
     bool
     default y
@@ -1040,6 +1060,14 @@ config SOC_CLK_XTAL32K_SUPPORTED
     default y
 
 config SOC_COEX_HW_PTI
+    bool
+    default y
+
+config SOC_EXTERNAL_COEX_ADVANCE
+    bool
+    default n
+
+config SOC_EXTERNAL_COEX_LEADER_TX_LINE
     bool
     default y
 

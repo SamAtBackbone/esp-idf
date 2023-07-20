@@ -112,6 +112,7 @@ esp_err_t adc_continuous_new_handle(const adc_continuous_handle_cfg_t *hdl_confi
     }
 
     //ringbuffer storage/struct buffer
+    adc_ctx->ringbuf_size = hdl_config->max_store_buf_size;
     adc_ctx->ringbuf_storage = heap_caps_calloc(1, hdl_config->max_store_buf_size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     adc_ctx->ringbuf_struct = heap_caps_calloc(1, sizeof(StaticRingbuffer_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     if (!adc_ctx->ringbuf_storage || !adc_ctx->ringbuf_struct) {
@@ -134,7 +135,9 @@ esp_err_t adc_continuous_new_handle(const adc_continuous_handle_cfg_t *hdl_confi
     }
 
     //malloc dma descriptor
-    adc_ctx->hal.rx_desc = heap_caps_calloc(1, (sizeof(dma_descriptor_t)) * INTERNAL_BUF_NUM, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA);
+    uint32_t dma_desc_num_per_frame = (hdl_config->conv_frame_size + DMA_DESCRIPTOR_BUFFER_MAX_SIZE_4B_ALIGNED - 1) / DMA_DESCRIPTOR_BUFFER_MAX_SIZE_4B_ALIGNED;
+    uint32_t dma_desc_max_num = dma_desc_num_per_frame * INTERNAL_BUF_NUM;
+    adc_ctx->hal.rx_desc = heap_caps_calloc(1, (sizeof(dma_descriptor_t)) * dma_desc_max_num, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA);
     if (!adc_ctx->hal.rx_desc) {
         ret = ESP_ERR_NO_MEM;
         goto cleanup;
@@ -224,12 +227,14 @@ esp_err_t adc_continuous_new_handle(const adc_continuous_handle_cfg_t *hdl_confi
 #elif CONFIG_IDF_TARGET_ESP32
         .dev = (void *)I2S_LL_GET_HW(adc_ctx->i2s_host),
 #endif
-        .desc_max_num = INTERNAL_BUF_NUM,
+        .eof_desc_num = INTERNAL_BUF_NUM,
+        .eof_step = dma_desc_num_per_frame,
         .dma_chan = dma_chan,
         .eof_num = hdl_config->conv_frame_size / SOC_ADC_DIGI_DATA_BYTES_PER_CONV
     };
     adc_hal_dma_ctx_config(&adc_ctx->hal, &config);
 
+    adc_ctx->flags.flush_pool = hdl_config->flags.flush_pool;
     adc_ctx->fsm = ADC_FSM_INIT;
     *ret_handle = adc_ctx;
 
@@ -258,6 +263,7 @@ static IRAM_ATTR bool adc_dma_in_suc_eof_callback(gdma_channel_handle_t dma_chan
     ctx->rx_eof_desc_addr = event_data->rx_eof_desc_addr;
     return s_adc_dma_intr(user_data);
 }
+
 #else
 static IRAM_ATTR void adc_dma_intr_handler(void *arg)
 {
@@ -286,21 +292,22 @@ static IRAM_ATTR bool s_adc_dma_intr(adc_continuous_ctx_t *adc_digi_ctx)
     bool need_yield = false;
     BaseType_t ret;
     adc_hal_dma_desc_status_t status = false;
-    dma_descriptor_t *current_desc = NULL;
+    uint8_t *finished_buffer = NULL;
+    uint32_t finished_size = 0;
 
     while (1) {
-        status = adc_hal_get_reading_result(&adc_digi_ctx->hal, adc_digi_ctx->rx_eof_desc_addr, &current_desc);
+        status = adc_hal_get_reading_result(&adc_digi_ctx->hal, adc_digi_ctx->rx_eof_desc_addr, &finished_buffer, &finished_size);
         if (status != ADC_HAL_DMA_DESC_VALID) {
             break;
         }
 
-        ret = xRingbufferSendFromISR(adc_digi_ctx->ringbuf_hdl, current_desc->buffer, current_desc->dw0.length, &taskAwoken);
+        ret = xRingbufferSendFromISR(adc_digi_ctx->ringbuf_hdl, finished_buffer, finished_size, &taskAwoken);
         need_yield |= (taskAwoken == pdTRUE);
 
         if (adc_digi_ctx->cbs.on_conv_done) {
             adc_continuous_evt_data_t edata = {
-                .conv_frame_buffer = current_desc->buffer,
-                .size = current_desc->dw0.length,
+                .conv_frame_buffer = finished_buffer,
+                .size = finished_size,
             };
             if (adc_digi_ctx->cbs.on_conv_done(adc_digi_ctx, &edata, adc_digi_ctx->user_data)) {
                 need_yield |= true;
@@ -308,7 +315,25 @@ static IRAM_ATTR bool s_adc_dma_intr(adc_continuous_ctx_t *adc_digi_ctx)
         }
 
         if (ret == pdFALSE) {
-            //ringbuffer overflow
+            if (adc_digi_ctx->flags.flush_pool) {
+                size_t actual_size = 0;
+                uint8_t *old_data = xRingbufferReceiveUpToFromISR(adc_digi_ctx->ringbuf_hdl, &actual_size, adc_digi_ctx->ringbuf_size);
+                /**
+                 * Replace by ringbuffer reset API when this API is ready.
+                 * Now we do mannual reset.
+                 * For old_data == NULL condition (equals to the future ringbuffer reset fail condition), we don't care this time data,
+                 * as this only happens when the ringbuffer size is small, new data will be filled in soon.
+                 */
+                if (old_data) {
+                    vRingbufferReturnItemFromISR(adc_digi_ctx->ringbuf_hdl, old_data, &taskAwoken);
+                    xRingbufferSendFromISR(adc_digi_ctx->ringbuf_hdl, finished_buffer, finished_size, &taskAwoken);
+                    if (taskAwoken == pdTRUE) {
+                        need_yield |= true;
+                    }
+                }
+            }
+
+            //ringbuffer overflow happens before
             if (adc_digi_ctx->cbs.on_pool_ovf) {
                 adc_continuous_evt_data_t edata = {};
                 if (adc_digi_ctx->cbs.on_pool_ovf(adc_digi_ctx, &edata, adc_digi_ctx->user_data)) {
@@ -316,11 +341,6 @@ static IRAM_ATTR bool s_adc_dma_intr(adc_continuous_ctx_t *adc_digi_ctx)
                 }
             }
         }
-    }
-
-    if (status == ADC_HAL_DMA_DESC_NULL) {
-        //start next turns of dma operation
-        adc_hal_digi_start(&adc_digi_ctx->hal, adc_digi_ctx->rx_dma_buf);
     }
 
     return need_yield;

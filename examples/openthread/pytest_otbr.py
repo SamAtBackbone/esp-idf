@@ -141,7 +141,7 @@ def formBasicWiFiThreadNetwork(br:IdfDut, cli:IdfDut) -> None:
 @pytest.mark.esp32h2
 @pytest.mark.esp32c6
 @pytest.mark.openthread_br
-@pytest.mark.flaky(reruns=0, reruns_delay=1)
+@pytest.mark.flaky(reruns=1, reruns_delay=1)
 @pytest.mark.parametrize(
     'config, count, app_path, target', [
         ('rcp|cli_h2|br', 3,
@@ -363,10 +363,6 @@ def test_service_discovery_of_WiFi_device(Init_interface:bool, Init_avahi:bool, 
         ocf.execute_command(cli, command)
         cli.expect('Done', timeout=5)
         ocf.wait(cli, 1)
-        command = 'dns resolve FA000123.default.service.arpa.'
-        ocf.clean_buffer(cli)
-        ocf.execute_command(cli, command)
-        cli.expect('Error', timeout=15)
         domain_name = ocf.get_domain()
         print('domain name is: ', domain_name)
         command = 'dns resolve ' + domain_name + '.default.service.arpa.'

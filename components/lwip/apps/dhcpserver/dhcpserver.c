@@ -559,7 +559,7 @@ static void send_offer(dhcps_t *dhcps, struct dhcps_msg *m, u16_t len)
 
     end = add_msg_type(&m->options[4], DHCPOFFER);
     end = add_offer_options(dhcps, end);
-    LWIP_HOOK_DHCPS_POST_APPEND_OPTS(dhcps->netif, dhcps, DHCPOFFER, &end)
+    LWIP_HOOK_DHCPS_POST_APPEND_OPTS(dhcps->dhcps_netif, dhcps, DHCPOFFER, &end)
     end = add_end(end);
 
     p = dhcps_pbuf_alloc(len);
@@ -604,7 +604,7 @@ static void send_offer(dhcps_t *dhcps, struct dhcps_msg *m, u16_t len)
     ip_addr_t ip_temp = IPADDR4_INIT(0x0);
     ip4_addr_set(ip_2_ip4(&ip_temp), &dhcps->broadcast_dhcps);
 #if DHCPS_DEBUG
-    SendOffer_err_t = udp_sendto(pcb_dhcps, p, &ip_temp, DHCPS_CLIENT_PORT);
+    SendOffer_err_t = udp_sendto(dhcps->dhcps_pcb, p, &ip_temp, DHCPS_CLIENT_PORT);
     DHCPS_LOG("dhcps: send_offer>>udp_sendto result %x\n", SendOffer_err_t);
 #else
     udp_sendto(dhcps->dhcps_pcb, p, &ip_temp, DHCPS_CLIENT_PORT);
@@ -637,7 +637,7 @@ static void send_nak(dhcps_t *dhcps, struct dhcps_msg *m, u16_t len)
     create_msg(dhcps, m);
 
     end = add_msg_type(&m->options[4], DHCPNAK);
-    LWIP_HOOK_DHCPS_POST_APPEND_OPTS(dhcps->netif, dhcps, DHCPNAK, &end)
+    LWIP_HOOK_DHCPS_POST_APPEND_OPTS(dhcps->dhcps_netif, dhcps, DHCPNAK, &end)
     end = add_end(end);
 
     p = dhcps_pbuf_alloc(len);
@@ -682,7 +682,7 @@ static void send_nak(dhcps_t *dhcps, struct dhcps_msg *m, u16_t len)
     ip_addr_t ip_temp = IPADDR4_INIT(0x0);
     ip4_addr_set(ip_2_ip4(&ip_temp), &dhcps->broadcast_dhcps);
 #if DHCPS_DEBUG
-    SendNak_err_t = udp_sendto(pcb_dhcps, p, &ip_temp, DHCPS_CLIENT_PORT);
+    SendNak_err_t = udp_sendto(dhcps->dhcps_pcb, p, &ip_temp, DHCPS_CLIENT_PORT);
     DHCPS_LOG("dhcps: send_nak>>udp_sendto result %x\n", SendNak_err_t);
 #else
     udp_sendto(dhcps->dhcps_pcb, p, &ip_temp, DHCPS_CLIENT_PORT);
@@ -714,7 +714,7 @@ static void send_ack(dhcps_t *dhcps, struct dhcps_msg *m, u16_t len)
 
     end = add_msg_type(&m->options[4], DHCPACK);
     end = add_offer_options(dhcps, end);
-    LWIP_HOOK_DHCPS_POST_APPEND_OPTS(dhcps->netif, dhcps, DHCPACK, &end)
+    LWIP_HOOK_DHCPS_POST_APPEND_OPTS(dhcps->dhcps_netif, dhcps, DHCPACK, &end)
     end = add_end(end);
 
     p = dhcps_pbuf_alloc(len);
@@ -1005,7 +1005,7 @@ POOL_CHECK:
 
 #if DHCPS_DEBUG
         DHCPS_LOG("dhcps: xid changed\n");
-        DHCPS_LOG("dhcps: client_address.addr = %x\n", client_address.addr);
+        DHCPS_LOG("dhcps: client_address.addr = %x\n", dhcps->client_address.addr);
 #endif
         return ret;
     }

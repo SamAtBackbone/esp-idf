@@ -50,11 +50,18 @@ static void cmd_ping_on_ping_end(esp_ping_handle_t hdl, void *args)
     uint32_t transmitted;
     uint32_t received;
     uint32_t total_time_ms;
+    uint32_t loss;
+
     esp_ping_get_profile(hdl, ESP_PING_PROF_REQUEST, &transmitted, sizeof(transmitted));
     esp_ping_get_profile(hdl, ESP_PING_PROF_REPLY, &received, sizeof(received));
     esp_ping_get_profile(hdl, ESP_PING_PROF_IPADDR, &target_addr, sizeof(target_addr));
     esp_ping_get_profile(hdl, ESP_PING_PROF_DURATION, &total_time_ms, sizeof(total_time_ms));
-    uint32_t loss = (uint32_t)((1 - ((float)received) / transmitted) * 100);
+
+    if (transmitted > 0) {
+        loss = (uint32_t)((1 - ((float)received) / transmitted) * 100);
+    } else {
+        loss = 0;
+    }
     if (IP_IS_V4(&target_addr)) {
         printf("\n--- %s ping statistics ---\n", inet_ntoa(*ip_2_ip4(&target_addr)));
     } else {
@@ -213,8 +220,19 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_console_new_repl_usb_serial_jtag(&usbjtag_config, &repl_config, &repl));
 #endif
 
+    /* Use either WiFi console commands or menuconfig options to connect to WiFi/Ethernet
+     *
+     * Please disable `Provide wifi connect commands` in `Example Connection Configuration`
+     * to connect immediately using configured interface and settings (WiFi/Ethernet).
+     */
+#if defined(CONFIG_EXAMPLE_PROVIDE_WIFI_CONSOLE_CMD)
     /* register wifi connect commands */
     example_register_wifi_connect_commands();
+#elif defined(CONFIG_EXAMPLE_CONNECT_WIFI) || defined(CONFIG_EXAMPLE_CONNECT_ETHERNET)
+    /* automatic connection per menuconfig */
+    ESP_ERROR_CHECK(example_connect());
+#endif
+
     /* register command `ping` */
     register_ping();
     /* register command `quit` */

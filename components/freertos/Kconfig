@@ -3,8 +3,16 @@ menu "FreeRTOS"
     menu "Kernel"
         # Upstream FreeRTOS configurations go here
 
+        config FREERTOS_USE_KERNEL_10_5_1
+            bool "Use v10.5.1 Kernel (EXPERIMENTAL)"
+            depends on IDF_EXPERIMENTAL_FEATURES
+            default n
+            help
+                Hidden option for development/testing purposes to enable building with the v10.5.1 kernel
+
         config FREERTOS_SMP
             bool "Run the Amazon SMP FreeRTOS kernel instead (FEATURE UNDER DEVELOPMENT)"
+            depends on !FREERTOS_USE_KERNEL_10_5_1
             default  "n"
             help
                 Amazon has released an SMP version of the FreeRTOS Kernel which can be found via the following link:
@@ -154,6 +162,7 @@ menu "FreeRTOS"
         config FREERTOS_ENABLE_BACKWARD_COMPATIBILITY
             bool "configENABLE_BACKWARD_COMPATIBILITY"
             default n
+            depends on !IDF_TARGET_LINUX
             help
                 Enable backward compatibility with APIs prior to FreeRTOS v8.0.0. (see
                 configENABLE_BACKWARD_COMPATIBILITY documentation for more details).
@@ -273,7 +282,7 @@ menu "FreeRTOS"
 
         config FREERTOS_TASK_FUNCTION_WRAPPER
             bool "Wrap task functions"
-            depends on COMPILER_OPTIMIZATION_DEFAULT || ESP_COREDUMP_ENABLE || ESP_GDBSTUB_ENABLED
+            depends on COMPILER_OPTIMIZATION_DEBUG || ESP_COREDUMP_ENABLE || ESP_GDBSTUB_ENABLED
             default y
             help
                 If enabled, all FreeRTOS task functions will be enclosed in a wrapper function. If a task function
@@ -482,6 +491,11 @@ menu "FreeRTOS"
     endmenu # Port
 
     # Hidden or compatibility options
+
+    config FREERTOS_PORT
+        # This invisible config value indicates the FreeRTOS is selected as the current RTOS used by ESP-IDF
+        bool
+        default y
 
     config FREERTOS_NO_AFFINITY
         # This invisible config value sets the value of tskNO_AFFINITY in task.h.

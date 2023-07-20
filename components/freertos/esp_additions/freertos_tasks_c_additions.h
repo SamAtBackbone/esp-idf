@@ -7,7 +7,7 @@
 #pragma once
 
 #include "sdkconfig.h"
-#include "idf_additions.h"
+#include "freertos/idf_additions.h"
 #include "esp_private/freertos_idf_additions_priv.h"
 
 /**
@@ -17,6 +17,18 @@
  * `esp_additions/include` directory of the headers that expose these `tasks.c`
  * additional API.
  */
+
+/* ------------------------------------------------- Static asserts ----------------------------------------------------
+ *
+ * ------------------------------------------------------------------------------------------------------------------ */
+
+/**
+ * Both StaticTask_t and TCB_t structures are provided by FreeRTOS sources.
+ * This is just an additional check of the consistency of these structures.
+ */
+
+_Static_assert(offsetof( StaticTask_t, pxDummy6 ) == offsetof( TCB_t, pxStack ));
+_Static_assert(offsetof( StaticTask_t, pxDummy8 ) == offsetof( TCB_t, pxEndOfStack ));
 
 /* ----------------------------------------------------- Newlib --------------------------------------------------------
  *
@@ -54,7 +66,7 @@ struct _reent *__getreent(void)
 
 #if CONFIG_FREERTOS_ENABLE_TASK_SNAPSHOT
 
-#include "task_snapshot.h"
+#include "freertos/task_snapshot.h"
 
 /**
  * @brief List of all task lists in FreeRTOS
@@ -240,7 +252,7 @@ UBaseType_t uxTaskGetSnapshotAll( TaskSnapshot_t * const pxTaskSnapshotArray, co
  *
  * ------------------------------------------------------------------------------------------------------------------ */
 
-#if ( configENABLE_FREERTOS_DEBUG_OCDAWARE == 1 )
+#if CONFIG_FREERTOS_DEBUG_OCDAWARE
 
 /**
  * Debug param indexes. DO NOT change the order. OpenOCD uses the same indexes
@@ -270,7 +282,7 @@ const DRAM_ATTR uint8_t FreeRTOS_openocd_params[ESP_FREERTOS_DEBUG_TABLE_END]  =
     offsetof(TCB_t, pcTaskName),        /* thread_name_offset; */
 };
 
-#endif // configENABLE_FREERTOS_DEBUG_OCDAWARE == 1
+#endif // CONFIG_FREERTOS_DEBUG_OCDAWARE
 
 /* -------------------------------------------- FreeRTOS IDF API Additions ---------------------------------------------
  * FreeRTOS related API that were added by IDF

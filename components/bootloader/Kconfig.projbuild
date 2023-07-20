@@ -1,5 +1,7 @@
 menu "Bootloader config"
 
+    orsource "../esp_bootloader_format/Kconfig.bootloader"
+
     config BOOTLOADER_OFFSET_IN_FLASH
         hex
         default 0x1000 if IDF_TARGET_ESP32 || IDF_TARGET_ESP32S2
@@ -427,6 +429,7 @@ menu "Bootloader config"
     config BOOTLOADER_FLASH_XMC_SUPPORT
         bool "Enable the support for flash chips of XMC (READ HELP FIRST)"
         default y
+        depends on !IDF_ENV_BRINGUP
         help
             Perform the startup flow recommended by XMC. Please consult XMC for the details of this flow.
             XMC chips will be forbidden to be used, when this option is disabled.
@@ -735,6 +738,23 @@ menu "Security features"
             This can lead to permanent bricking of the device, in case all keys are revoked
             because of signature verification failure.
 
+    config SECURE_BOOT_FLASH_BOOTLOADER_DEFAULT
+        bool "Flash bootloader along with other artifacts when using the default flash command"
+        depends on SECURE_BOOT_V2_ENABLED && SECURE_BOOT_BUILD_SIGNED_BINARIES
+        default N
+        help
+            When Secure Boot V2 is enabled, by default the bootloader is not flashed along with other artifacts
+            like the application and the partition table images, i.e. bootloader has to be seperately flashed
+            using the command `idf.py bootloader flash`, whereas, the application and partition table can be flashed
+            using the command `idf.py flash` itself.
+            Enabling this option allows flashing the bootloader along with the other artifacts
+            by invocation of the command `idf.py flash`.
+
+            If this option is enabled make sure that even the bootloader is signed using the correct secure boot key,
+            otherwise the bootloader signature verification would fail, as hash of the public key which is present in
+            the bootloader signature would not match with the digest stored into the efuses
+            and thus the device will not be able to boot up.
+
     choice SECURE_BOOTLOADER_KEY_ENCODING
         bool "Hardware Key Encoding"
         depends on SECURE_BOOTLOADER_REFLASHABLE
@@ -774,6 +794,7 @@ menu "Security features"
         bool "Enable flash encryption on boot (READ DOCS FIRST)"
         default N
         select SPI_FLASH_ENABLE_ENCRYPTED_READ_WRITE
+        select NVS_ENCRYPTION
         help
             If this option is set, flash contents will be encrypted by the bootloader on first boot.
 
@@ -784,11 +805,11 @@ menu "Security features"
             before enabling.
 
     choice SECURE_FLASH_ENCRYPTION_KEYSIZE
-        bool "Size of generated AES-XTS key"
+        bool "Size of generated XTS-AES key"
         default SECURE_FLASH_ENCRYPTION_AES128
         depends on SOC_FLASH_ENCRYPTION_XTS_AES_OPTIONS && SECURE_FLASH_ENC_ENABLED
         help
-            Size of generated AES-XTS key.
+            Size of generated XTS-AES key.
 
             - AES-128 uses a 256-bit key (32 bytes) derived from 128 bits (16 bytes) burned in half Efuse key block.
               Internally, it calculates SHA256(128 bits)

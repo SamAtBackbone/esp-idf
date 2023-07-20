@@ -25,20 +25,29 @@ Some features are not supported on all ESP chips and Flash chips. You can check 
 
     This document only shows that IDF code has supported the features of those flash chips. It's not a list of stable flash chips certified by Espressif. If you build your own hardware from flash chips with your own brought flash chips (even with flash listed in this page), you need to validate the reliability of flash chips yourself.
 
+.. _auto-suspend-intro:
+
 Auto Suspend & Resume
 ---------------------
 
-.. only:: esp32c3
-
-    You can refer to :ref:`auto-suspend` for more information about this feature. The support list is as follows.
+The support list is as follows.
 
 ESP Chips List:
 
 1. ESP32C3
+2. ESP32C2
+3. ESP32S3
 
 Flash Chips List:
 
 1. XM25QxxC series.
+2. GD25QxxE series.
+
+.. only:: esp32c3 or esp32c2 or esp32s3
+
+    .. attention::
+
+        There are multiple limitations about the auto-suspend feature, please do read :ref:`auto-suspend` for more information before you enable this feature.
 
 Flash unique ID
 ---------------
@@ -123,3 +132,11 @@ Flash Chips List:
 
 1. W25Q256
 2. GD25Q256
+
+.. important::
+
+    Over 16 MBytes space on flash mentioned above can be only used for `data saving`, like file system. If your data / instructions over 16 MBytes spaces need to be mapped to MMU (so as to be accessed by the CPU), please enable the config `IDF_EXPERIMENTAL_FEATURES` and `CONFIG_SPI_FLASH_32BIT_ADDRESS` and read the limitations following:
+
+    1. This option only valid for 4-line flash. Octal flash doesn't need this.
+    2. Only MMU on ESP chip that supports mapping to a range over 16MB memory supports this config. (Only ESP32S3 supports this up to now)
+    3. This option is experimental, which means it can't use on all flash chips stable, for more information, please contact Espressif Business support.

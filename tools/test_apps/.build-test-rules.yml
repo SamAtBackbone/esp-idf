@@ -5,11 +5,11 @@ tools/test_apps/build_system/custom_partition_subtypes:
     - if: IDF_TARGET in ["esp32", "linux"]
       reason: the test should be run on ESP32 and linux
 
-tools/test_apps/build_system/ldgen_test:
-  disable:
-    - if: IDF_TARGET == "esp32c2"
-      temporary: true
-      reason: target esp32c2 is not supported yet
+tools/test_apps/build_system/embed_test:
+  enable:
+    - if: IDF_TARGET in ["esp32", "esp32c3"]
+      temporary: false
+      reason: Hardware independent feature, no need to test on all targets
 
 tools/test_apps/linux_compatible/driver_mock:
   enable:
@@ -18,6 +18,10 @@ tools/test_apps/linux_compatible/driver_mock:
 tools/test_apps/linux_compatible/hello_world_linux_compatible:
   enable:
     - if: INCLUDE_DEFAULT == 1 or IDF_TARGET == "linux"
+
+tools/test_apps/linux_compatible/linux_freertos:
+  enable:
+    - if: IDF_TARGET == "linux"
 
 tools/test_apps/linux_compatible/rmt_mock_build_test:
   enable:
@@ -126,6 +130,12 @@ tools/test_apps/system/gdb_loadable_elf:
       temporary: true
       reason: target esp32c6, esp32h2 is not supported yet
 
+tools/test_apps/system/gdbstub_runtime:
+  disable_test:
+    - if: IDF_TARGET in ["esp32c2", "esp32h2"]
+      temporary: true
+      reason: resolve IDF-7264
+
 tools/test_apps/system/longjmp_test:
   enable:
     - if: IDF_TARGET in ["esp32", "esp32s2", "esp32s3"]
@@ -158,14 +168,6 @@ tools/test_apps/system/no_embedded_paths:
       temporary: true
       reason: the other targets are not tested yet
 
-tools/test_apps/system/panic:
-  enable:
-    - if: INCLUDE_DEFAULT == 1
-  disable_test:
-    - if: IDF_TARGET not in ["esp32", "esp32s2", "esp32c3", "esp32s3", "esp32c2", "esp32c6", "esp32h2"]
-      temporary: true
-      reason: test app not ported to this target yet
-
 tools/test_apps/system/ram_loadable_app:
   disable:
     - if: IDF_TARGET == "esp32h2"
@@ -173,8 +175,8 @@ tools/test_apps/system/ram_loadable_app:
       reason: lack of runners
 
 tools/test_apps/system/startup:
-  enable:
-    - if: INCLUDE_DEFAULT == 1 or IDF_TARGET in ["esp32c6"] # preview targets
+  disable:
+    - if: CONFIG_NAME == "main_task_cpu1" and IDF_TARGET not in ["esp32", "esp32s3"]
 
 tools/test_apps/system/test_watchpoint:
   enable:
@@ -184,3 +186,7 @@ tools/test_apps/system/unicore_bootloader:
   enable:
     - if: SOC_CPU_CORES_NUM > 1
       reason: the test should be run on multicore chips
+  disable:
+    - if: IDF_TARGET in ["esp32p4"] # TODO: IDF-7692
+      temporary: true
+      reason: not supported on esp32p4 yet

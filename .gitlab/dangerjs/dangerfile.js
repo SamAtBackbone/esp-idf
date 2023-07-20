@@ -12,11 +12,11 @@ async function runChecks() {
     await require("./mrDescriptionJiraLinks.js")();
 
     // Checks for documentation
-    require("./mrDocsTranslation.js")();
+    await require("./mrDocsTranslation.js")();
 
     // Checks for MR commits
     require("./mrCommitsTooManyCommits.js")();
-    require("./mrCommitsCommitMessage.js")();
+    await require("./mrCommitsCommitMessage.js")();
     require("./mrCommitsEmail.js")();
 
     // Checks for MR code

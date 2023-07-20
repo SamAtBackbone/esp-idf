@@ -47,6 +47,10 @@ config SOC_GDMA_SUPPORTED
     bool
     default y
 
+config SOC_AHB_GDMA_SUPPORTED
+    bool
+    default y
+
 config SOC_GPTIMER_SUPPORTED
     bool
     default y
@@ -207,6 +211,10 @@ config SOC_BOD_SUPPORTED
     bool
     default y
 
+config SOC_CLK_TREE_SUPPORTED
+    bool
+    default y
+
 config SOC_XTAL_SUPPORT_40M
     bool
     default y
@@ -276,6 +284,10 @@ config SOC_ADC_DIGI_DATA_BYTES_PER_CONV
     default 4
 
 config SOC_ADC_DIGI_IIR_FILTER_NUM
+    int
+    default 2
+
+config SOC_ADC_DIGI_MONITOR_NUM
     int
     default 2
 
@@ -355,15 +367,19 @@ config SOC_DS_KEY_CHECK_MAX_WAIT_US
     int
     default 1100
 
-config SOC_GDMA_GROUPS
-    bool
-    default y
+config SOC_AHB_GDMA_VERSION
+    int
+    default 1
 
-config SOC_GDMA_PAIRS_PER_GROUP
+config SOC_GDMA_NUM_GROUPS_MAX
+    int
+    default 1
+
+config SOC_GDMA_PAIRS_PER_GROUP_MAX
     int
     default 5
 
-config SOC_GDMA_SUPPORT_PSRAM
+config SOC_AHB_GDMA_SUPPORT_PSRAM
     bool
     default y
 
@@ -418,6 +434,10 @@ config SOC_I2C_NUM
 config SOC_I2C_FIFO_LEN
     int
     default 32
+
+config SOC_I2C_CMD_REG_NUM
+    int
+    default 8
 
 config SOC_I2C_SUPPORT_SLAVE
     bool
@@ -879,6 +899,10 @@ config SOC_UART_NUM
     int
     default 3
 
+config SOC_UART_HP_NUM
+    int
+    default 3
+
 config SOC_UART_FIFO_LEN
     int
     default 128
@@ -962,6 +986,14 @@ config SOC_SHA_SUPPORT_SHA512_256
 config SOC_SHA_SUPPORT_SHA512_T
     bool
     default y
+
+config SOC_MPI_MEM_BLOCKS_NUM
+    int
+    default 4
+
+config SOC_MPI_OPERATIONS_NUM
+    int
+    default 3
 
 config SOC_RSA_MAX_BIT_LEN
     int
@@ -1175,7 +1207,7 @@ config SOC_SPI_MEM_SUPPORT_OPI_MODE
     bool
     default y
 
-config SOC_SPI_MEM_SUPPORT_TIME_TUNING
+config SOC_SPI_MEM_SUPPORT_TIMING_TUNING
     bool
     default y
 
@@ -1187,7 +1219,23 @@ config SOC_SPI_MEM_SUPPORT_WRAP
     bool
     default y
 
+config SOC_MEMSPI_TIMING_TUNING_BY_MSPI_DELAY
+    bool
+    default y
+
+config SOC_MEMSPI_CORE_CLK_SHARED_WITH_PSRAM
+    bool
+    default y
+
 config SOC_COEX_HW_PTI
+    bool
+    default y
+
+config SOC_EXTERNAL_COEX_ADVANCE
+    bool
+    default n
+
+config SOC_EXTERNAL_COEX_LEADER_TX_LINE
     bool
     default y
 
@@ -1202,6 +1250,10 @@ config SOC_SDMMC_NUM_SLOTS
 config SOC_SDMMC_SUPPORT_XTAL_CLOCK
     bool
     default y
+
+config SOC_SDMMC_DELAY_PHASE_NUM
+    int
+    default 4
 
 config SOC_TEMPERATURE_SENSOR_SUPPORT_FAST_RC
     bool

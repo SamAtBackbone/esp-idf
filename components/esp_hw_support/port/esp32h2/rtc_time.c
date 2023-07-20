@@ -15,7 +15,6 @@
 #include "hal/efuse_hal.h"
 #include "soc/chip_revision.h"
 
-
 static const char *TAG = "rtc_time";
 
 /* Calibration of RTC_SLOW_CLK is performed using a special feature of TIMG0.

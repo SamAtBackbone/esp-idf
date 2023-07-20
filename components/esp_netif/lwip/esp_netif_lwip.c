@@ -241,7 +241,7 @@ static void esp_netif_api_cb(void *api_msg)
 static inline esp_err_t esp_netif_lwip_ipc_call_msg(esp_netif_api_msg_t *msg)
 {
     if (!sys_thread_tcpip(LWIP_CORE_LOCK_QUERY_HOLDER)) {
-        ESP_LOGD(TAG, "check: remote, if=%p fn=%p\n", msg->esp_netif, msg->api_fn);
+        ESP_LOGD(TAG, "check: remote, if=%p fn=%p", msg->esp_netif, msg->api_fn);
 #if LWIP_TCPIP_CORE_LOCKING
         tcpip_send_msg_wait_sem((tcpip_callback_fn)esp_netif_api_cb, msg, NULL);
 #else
@@ -251,7 +251,7 @@ static inline esp_err_t esp_netif_lwip_ipc_call_msg(esp_netif_api_msg_t *msg)
 #endif /* LWIP_TCPIP_CORE_LOCKING */
         return msg->ret;
     }
-    ESP_LOGD(TAG, "check: local, if=%p fn=%p\n",  msg->esp_netif, msg->api_fn);
+    ESP_LOGD(TAG, "check: local, if=%p fn=%p",  msg->esp_netif, msg->api_fn);
     return msg->api_fn(msg);
 }
 
@@ -1218,8 +1218,12 @@ esp_err_t esp_netif_transmit_wrap(esp_netif_t *esp_netif, void *data, size_t len
 
 esp_err_t esp_netif_receive(esp_netif_t *esp_netif, void *buffer, size_t len, void *eb)
 {
+#ifdef CONFIG_ESP_NETIF_RECEIVE_REPORT_ERRORS
+    return esp_netif->lwip_input_fn(esp_netif->netif_handle, buffer, len, eb);
+#else
     esp_netif->lwip_input_fn(esp_netif->netif_handle, buffer, len, eb);
     return ESP_OK;
+#endif
 }
 
 #if CONFIG_LWIP_IPV4

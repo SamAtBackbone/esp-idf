@@ -122,6 +122,7 @@ INPUT = \
     $(PROJECT_PATH)/components/esp_adc/include/esp_adc/adc_continuous.h \
     $(PROJECT_PATH)/components/esp_adc/include/esp_adc/adc_oneshot.h \
     $(PROJECT_PATH)/components/esp_app_format/include/esp_app_desc.h \
+    $(PROJECT_PATH)/components/esp_bootloader_format/include/esp_bootloader_desc.h \
     $(PROJECT_PATH)/components/esp_common/include/esp_check.h \
     $(PROJECT_PATH)/components/esp_common/include/esp_err.h \
     $(PROJECT_PATH)/components/esp_common/include/esp_idf_version.h \
@@ -177,6 +178,7 @@ INPUT = \
     $(PROJECT_PATH)/components/esp_system/include/esp_system.h \
     $(PROJECT_PATH)/components/esp_system/include/esp_systick_etm.h \
     $(PROJECT_PATH)/components/esp_system/include/esp_task_wdt.h \
+    $(PROJECT_PATH)/components/esp_system/include/esp_task.h \
     $(PROJECT_PATH)/components/esp_timer/include/esp_timer.h \
     $(PROJECT_PATH)/components/esp_wifi/include/esp_mesh.h \
     $(PROJECT_PATH)/components/esp_wifi/include/esp_now.h \
@@ -235,6 +237,7 @@ INPUT = \
     $(PROJECT_PATH)/components/mqtt/esp-mqtt/include/mqtt_client.h \
     $(PROJECT_PATH)/components/nvs_flash/include/nvs_flash.h \
     $(PROJECT_PATH)/components/nvs_flash/include/nvs.h \
+    $(PROJECT_PATH)/components/nvs_sec_provider/include/nvs_sec_provider.h \
     $(PROJECT_PATH)/components/openthread/include/esp_openthread_border_router.h \
     $(PROJECT_PATH)/components/openthread/include/esp_openthread_lock.h \
     $(PROJECT_PATH)/components/openthread/include/esp_openthread_netif_glue.h \
@@ -254,6 +257,7 @@ INPUT = \
     $(PROJECT_PATH)/components/sdmmc/include/sdmmc_cmd.h \
     $(PROJECT_PATH)/components/soc/$(IDF_TARGET)/include/soc/adc_channel.h \
     $(PROJECT_PATH)/components/soc/$(IDF_TARGET)/include/soc/clk_tree_defs.h \
+    $(PROJECT_PATH)/components/soc/$(IDF_TARGET)/include/soc/gpio_num.h \
     $(PROJECT_PATH)/components/soc/$(IDF_TARGET)/include/soc/soc_caps.h \
     $(PROJECT_PATH)/components/soc/$(IDF_TARGET)/include/soc/uart_channel.h \
     $(PROJECT_PATH)/components/spi_flash/include/esp_flash_spi_init.h \
@@ -270,6 +274,11 @@ INPUT = \
     $(PROJECT_PATH)/components/ulp/ulp_riscv/include/ulp_riscv.h \
     $(PROJECT_PATH)/components/ulp/ulp_riscv/include/ulp_riscv_i2c.h \
     $(PROJECT_PATH)/components/ulp/ulp_riscv/shared/include/ulp_riscv_lock_shared.h \
+    $(PROJECT_PATH)/components/ulp/lp_core/include/lp_core_i2c.h \
+    $(PROJECT_PATH)/components/ulp/lp_core/include/ulp_lp_core.h \
+    $(PROJECT_PATH)/components/ulp/lp_core/lp_core/include/ulp_lp_core_gpio.h \
+    $(PROJECT_PATH)/components/ulp/lp_core/lp_core/include/ulp_lp_core_i2c.h \
+    $(PROJECT_PATH)/components/ulp/lp_core/lp_core/include/ulp_lp_core_utils.h \
     $(PROJECT_PATH)/components/usb/include/usb/usb_helpers.h \
     $(PROJECT_PATH)/components/usb/include/usb/usb_host.h \
     $(PROJECT_PATH)/components/usb/include/usb/usb_types_ch9.h \

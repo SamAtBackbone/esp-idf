@@ -63,6 +63,7 @@ uint32_t Cache_Suspend_DCache(void)
 }
 extern uint32_t Cache_Suspend_DCache(void);
 
+#if SOC_CACHE_FREEZE_SUPPORTED
 // renamed for patch
 extern void rom_Cache_Freeze_ICache_Enable(cache_freeze_mode_t mode);
 void Cache_Freeze_ICache_Enable(cache_freeze_mode_t mode)
@@ -80,4 +81,5 @@ void Cache_Freeze_DCache_Enable(cache_freeze_mode_t mode)
     Cache_Wait_Idle(0);
 }
 extern void Cache_Freeze_DCache_Enable(cache_freeze_mode_t mode);
+#endif
 #endif

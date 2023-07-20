@@ -12,6 +12,10 @@
 #include "soc/clk_tree_defs.h"
 #include "esp_attr.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief ADC unit
  */
@@ -117,6 +121,25 @@ typedef enum {
 } adc_digi_iir_filter_coeff_t;
 
 /*---------------------------------------------------------------
+                        ADC Monitor
+---------------------------------------------------------------*/
+/**
+ * @brief ADC monitor (continuous mode) ID
+ */
+typedef enum {
+    ADC_MONITOR_0,          ///< The monitor index 0.
+    ADC_MONITOR_1,          ///< The monitor index 1.
+} adc_monitor_id_t;
+
+/**
+ * @brief Monitor config/event mode type
+ */
+typedef enum {
+    ADC_MONITOR_MODE_HIGH = 0,      ///< ADC raw_result > threshold value, monitor interrupt will be generated.
+    ADC_MONITOR_MODE_LOW,           ///< ADC raw_result < threshold value, monitor interrupt will be generated.
+} adc_monitor_mode_t;
+
+/*---------------------------------------------------------------
                     Output Format
 ---------------------------------------------------------------*/
 #if CONFIG_IDF_TARGET_ESP32 || CONFIG_IDF_TARGET_ESP32S2
@@ -205,6 +228,7 @@ typedef struct {
 
 #endif
 
+
 #if CONFIG_IDF_TARGET_ESP32S2
 /**
  * @brief ADC digital controller (DMA mode) clock system setting.
@@ -220,4 +244,8 @@ typedef struct {
     uint32_t div_b;     /*!<Division factor. Range: 1 ~ 63. */
     uint32_t div_a;     /*!<Division factor. Range: 0 ~ 63. */
 } adc_digi_clk_t;
+#endif
+
+#ifdef __cplusplus
+}
 #endif

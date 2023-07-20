@@ -19,6 +19,10 @@
 #include "hal/ledc_types.h"
 #include "soc/soc_caps.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Context that should be maintained by both the driver and the HAL
  */
@@ -157,12 +161,12 @@ typedef struct {
  * @brief Get LEDC max duty
  *
  * @param hal Context of the HAL layer
- * @param channel_num LEDC channel index (0-7), select from ledc_channel_t
+ * @param channel_num LEDC timer index (0-3), select from ledc_timer_t
  * @param max_duty Pointer to accept the max duty
  *
  * @return None
  */
-#define ledc_hal_get_max_duty(hal, channel_num, max_duty)  ledc_ll_get_max_duty((hal)->dev, (hal)->speed_mode, channel_num, max_duty)
+#define ledc_hal_get_max_duty(hal, timer_sel, max_duty)  ledc_ll_get_max_duty((hal)->dev, (hal)->speed_mode, timer_sel, max_duty)
 
 /**
  * @brief Get LEDC hpoint value
@@ -338,6 +342,21 @@ void ledc_hal_set_duty_cycle(ledc_hal_context_t *hal, ledc_channel_t channel_num
  */
 void ledc_hal_set_duty_scale(ledc_hal_context_t *hal, ledc_channel_t channel_num, uint32_t duty_scale);
 
+/**
+ * @brief Function to set fade parameters all-in-one
+ *
+ * @param hal Context of the HAL layer
+ * @param channel_num LEDC channel index, select from ledc_channel_t
+ * @param range Range index
+ * @param dir LEDC duty change direction, increase or decrease
+ * @param cycle The duty cycles
+ * @param scale The step scale
+ * @param step The number of increased or decreased times
+ *
+ * @return None
+ */
+void ledc_hal_set_fade_param(const ledc_hal_context_t *hal, ledc_channel_t channel_num, uint32_t range, uint32_t dir, uint32_t cycle, uint32_t scale, uint32_t step);
+
 #if SOC_LEDC_GAMMA_CURVE_FADE_SUPPORTED
 /**
  * @brief Set the range number of the specified duty configurations to be written from gamma_wr register to gamma ram
@@ -419,3 +438,7 @@ void ledc_hal_clear_fade_end_intr_status(ledc_hal_context_t *hal, ledc_channel_t
  * @return None
  */
 void ledc_hal_get_clk_cfg(ledc_hal_context_t *hal, ledc_timer_t timer_sel, ledc_clk_cfg_t *clk_cfg);
+
+#ifdef __cplusplus
+}
+#endif

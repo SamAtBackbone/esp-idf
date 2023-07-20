@@ -17,17 +17,6 @@ flash 加密
 
 flash 加密功能用于加密与 {IDF_TARGET_NAME} 搭载使用的片外 flash 中的内容。启用 flash 加密功能后，固件会以明文形式烧录，然后在首次启动时将数据进行加密。因此，物理读取 flash 将无法恢复大部分 flash 内容。
 
-启用 flash 加密后，系统将默认加密下列类型的 flash 数据：
-
-- 固件引导加载程序
-- 分区表
-- 所有 “app” 类型的分区
-
-其他类型的数据将视情况进行加密：
-
-- 任何在分区表中标有“加密”标志的分区。详情请见 :ref:`encrypted-partition-flag`。
-- 如果启用了安全启动，则可以加密安全启动引导程序摘要（见下文）。
-
 .. only:: esp32
 
     :doc:`安全启动<secure-boot-v2>` 是一个独立的功能，可以与 flash 加密一起使用，从而创建更安全的环境。
@@ -39,6 +28,24 @@ flash 加密功能用于加密与 {IDF_TARGET_NAME} 搭载使用的片外 flash 
 .. important::
 
     启用 flash 加密将限制后续 {IDF_TARGET_NAME} 更新。在使用 flash 加密功能前，请务必阅读本文档了解其影响。
+
+.. _encrypted-partitions:
+
+Encrypted Partitions
+--------------------
+
+启用 flash 加密后，系统将默认加密下列类型的 flash 数据：
+
+- 固件引导加载程序
+- 分区表
+- :ref:`nvs_encr_key_partition`
+- Otadata
+- 所有 “app” 类型的分区
+
+其他类型的数据将视情况进行加密：
+
+- 任何在分区表中标有“加密”标志的分区。详情请见 :ref:`encrypted-partition-flag`。
+- 如果启用了安全启动，则可以加密安全启动引导程序摘要（见下文）。
 
 .. _flash-encryption-efuse:
 
@@ -74,7 +81,12 @@ flash 加密操作由 {IDF_TARGET_NAME} 上的多个 eFuse 控制。以下是这
          - 设置后，在 UART 固件下载模式运行时禁用 flash 解密操作。
          - 1
        * - ``{IDF_TARGET_CRYPT_CNT}``
-         - 在启动时启用/禁用加密。如果设置了偶数个比特位 (0、2、4、6)，则在启动时加密 flash。如果设置了奇数个比特位 (1、3、5、7)，则在启动时不加密 flash。
+         - 通过 :math:`2^n` 数字来表示 flash 的内容是否已被加密.
+
+           * 如果设置了奇数个比特位（例如 ``0b0000001`` 或 ``0b0000111``）, 表示 flash 的内容已加密。读取时，内容需要进行透明解密。
+           * 如果设置了偶数个比特位（例如 ``0b0000000`` 或 ``0b0000011``）, 表示 flash 的内容未被加密 (即明文)。
+
+           随着每次连续的 flash 未加密（例如烧录一个新的未加密二进制文件）与进行 flash 加密（通过 :ref:`启动时启用 flash 加密功能 <CONFIG_SECURE_FLASH_ENC_ENABLED>` 选项）, ``{IDF_TARGET_CRYPT_CNT}`` 的下一个的最高有效位 (MSB) 会被设置。
          - 7
 
 
@@ -184,7 +196,7 @@ flash 的加密过程
 
   2. 固件的引导加载程序将读取 ``{IDF_TARGET_CRYPT_CNT}`` eFuse 值 (``0b000``)。因为该值为 0（偶数位），固件引导加载程序将配置并启用 flash 加密块。关于 flash 加密块的更多信息，请参考 *{IDF_TARGET_NAME} 技术参考手册* > *eFuse 控制器(eFuse)* > *自动加密块* [`PDF <{IDF_TARGET_TRM_CN_URL}#efuse>`__]。
 
-  3. 固件的引导加载程序使用 RNG（随机数生成）模块生成 256 位或 512 位密钥，具体取决于 :ref:`生成的 AES-XTS 密钥的大小 <CONFIG_SECURE_FLASH_ENCRYPTION_KEYSIZE>`，然后分别将其写入一个或两个 `BLOCK_KEYN` eFuses。软件也为存储密钥的块更新了 ``KEY_PURPOSE_N``。由于一或两个 ``BLOCK_KEYN`` eFuse 已设置编写和读取保护位，将无法通过软件访问密钥。``KEY_PURPOSE_N`` 字段也受写保护。flash 加密操作完全在硬件中完成，无法通过软件访问密钥。
+  3. 固件的引导加载程序使用 RNG（随机数生成）模块生成 256 位或 512 位密钥，具体取决于 :ref:`生成的 XTS-AES 密钥的大小 <CONFIG_SECURE_FLASH_ENCRYPTION_KEYSIZE>`，然后分别将其写入一个或两个 `BLOCK_KEYN` eFuses。软件也为存储密钥的块更新了 ``KEY_PURPOSE_N``。由于一或两个 ``BLOCK_KEYN`` eFuse 已设置编写和读取保护位，将无法通过软件访问密钥。``KEY_PURPOSE_N`` 字段也受写保护。flash 加密操作完全在硬件中完成，无法通过软件访问密钥。
 
   4. flash 加密块将加密 flash 的内容（固件的引导加载程序、应用程序、以及标有“加密”标志的分区）。就地加密可能会耗些时间（对于大分区最多需要一分钟）。
 
@@ -228,7 +240,7 @@ flash 的加密过程
 
   2. 固件的引导加载程序将读取 ``{IDF_TARGET_CRYPT_CNT}`` eFuse 值 (``0b000``)。因为该值为 0（偶数位），固件引导加载程序将配置并启用 flash 加密块。关于 flash 加密块的更多信息，请参考 `{IDF_TARGET_NAME} 技术参考手册 <{IDF_TARGET_TRM_CN_URL}>`_。
 
-  3. 固件的引导加载程序使用 RNG（随机数生成）模块生成 256 位或 128 位密钥（具体位数取决于 :ref:`Size of generated AES-XTS key <CONFIG_SECURE_FLASH_ENCRYPTION_KEYSIZE>`），然后将其写入 `BLOCK_KEY0` eFuse。同时，根据所选选项，软件对 ``XTS_KEY_LENGTH_256`` 进行更新。由于 ``BLOCK_KEY0`` eFuse 已设置编写和读取保护位，故无法通过软件访问密钥。flash 加密操作完全在硬件中完成，无法通过软件访问密钥。若使用 128 位 flash 加密密钥，则整个 eFuse 密钥块都受写保护，但只有低 128 位受读保护，高 128 位是可读的，以满足安全启动的需要。如果 flash 加密的密钥是 256 位，那么 ``XTS_KEY_LENGTH_256`` 为 1，否则为 0。为防止意外将 eFuse 从 0 改为 1，RELEASE 模式中设置了一个写保护位。
+  3. 固件的引导加载程序使用 RNG（随机数生成）模块生成 256 位或 128 位密钥（具体位数取决于 :ref:`Size of generated XTS-AES key <CONFIG_SECURE_FLASH_ENCRYPTION_KEYSIZE>`），然后将其写入 `BLOCK_KEY0` eFuse。同时，根据所选选项，软件对 ``XTS_KEY_LENGTH_256`` 进行更新。由于 ``BLOCK_KEY0`` eFuse 已设置编写和读取保护位，故无法通过软件访问密钥。flash 加密操作完全在硬件中完成，无法通过软件访问密钥。若使用 128 位 flash 加密密钥，则整个 eFuse 密钥块都受写保护，但只有低 128 位受读保护，高 128 位是可读的，以满足安全启动的需要。如果 flash 加密的密钥是 256 位，那么 ``XTS_KEY_LENGTH_256`` 为 1，否则为 0。为防止意外将 eFuse 从 0 改为 1，RELEASE 模式中设置了一个写保护位。
 
   4. flash 加密块将加密 flash 的内容（固件的引导加载程序、应用程序、以及标有“加密”标志的分区）。就地加密可能会耗些时间（对于大分区最多需要一分钟）。
 
@@ -283,7 +295,7 @@ flash 加密设置
     - :ref:`选择加密模式 <CONFIG_SECURE_FLASH_ENCRYPTION_MODE>` （默认是 **开发模式**）。
     :esp32: - :ref:`选择 UART ROM 下载模式 <CONFIG_SECURE_UART_ROM_DL_MODE>` （默认是 **启用**）。请注意，对于 ESP32 芯片，该选项仅在 :ref:`CONFIG_ESP32_REV_MIN` 级别设置为 3 时 (ESP32 V3) 可用。
     :not esp32: - :ref:`选择 UART ROM 下载模式 <CONFIG_SECURE_UART_ROM_DL_MODE>` （默认是 **启用**）。
-    :esp32s2 or esp32s3 or esp32c2: - 设置 :ref:`生成的 AES-XTS 密钥大小 <CONFIG_SECURE_FLASH_ENCRYPTION_KEYSIZE>`。
+    :esp32s2 or esp32s3 or esp32c2: - 设置 :ref:`生成的 XTS-AES 密钥大小 <CONFIG_SECURE_FLASH_ENCRYPTION_KEYSIZE>`。
     - :ref:`选择适当详细程度的引导加载程序日志 <CONFIG_BOOTLOADER_LOG_LEVEL>`。
     - 保存配置并退出。
 
@@ -348,13 +360,13 @@ flash 加密设置
 
   .. only:: SOC_FLASH_ENCRYPTION_XTS_AES_256
 
-    如果 :ref:`生成的 AES-XTS 密钥大小 <CONFIG_SECURE_FLASH_ENCRYPTION_KEYSIZE>` 是 AES-128（256 位密钥）：
+    如果 :ref:`生成的 XTS-AES 密钥大小 <CONFIG_SECURE_FLASH_ENCRYPTION_KEYSIZE>` 是 AES-128（256 位密钥）：
 
       .. code-block:: bash
 
           espsecure.py generate_flash_encryption_key my_flash_encryption_key.bin
 
-    如果 :ref:`生成的 AES-XTS 密钥大小 <CONFIG_SECURE_FLASH_ENCRYPTION_KEYSIZE>` 是 AES-256（512 位密钥）：
+    如果 :ref:`生成的 XTS-AES 密钥大小 <CONFIG_SECURE_FLASH_ENCRYPTION_KEYSIZE>` 是 AES-256（512 位密钥）：
 
       .. code-block:: bash
 
@@ -369,13 +381,13 @@ flash 加密设置
 
 .. only:: SOC_FLASH_ENCRYPTION_XTS_AES_128 and SOC_EFUSE_CONSISTS_OF_ONE_KEY_BLOCK
 
-      如果 :ref:`生成的 AES-XTS 密钥大小 <CONFIG_SECURE_FLASH_ENCRYPTION_KEYSIZE>` 是 AES-128（256 位密钥）:
+      如果 :ref:`生成的 XTS-AES 密钥大小 <CONFIG_SECURE_FLASH_ENCRYPTION_KEYSIZE>` 是 AES-128（256 位密钥）:
 
      .. code-block:: bash
 
           espsecure.py generate_flash_encryption_key my_flash_encryption_key.bin
 
-      或者如果 :ref:`生成的 AES-XTS 密钥大小 <CONFIG_SECURE_FLASH_ENCRYPTION_KEYSIZE>` 是由 128 位导出的 AES-128 密钥（SHA256（128 位））:
+      或者如果 :ref:`生成的 XTS-AES 密钥大小 <CONFIG_SECURE_FLASH_ENCRYPTION_KEYSIZE>` 是由 128 位导出的 AES-128 密钥（SHA256（128 位））:
 
       .. code-block:: bash
 
@@ -555,6 +567,11 @@ flash 加密设置
    :not esp32: - 如果不需要 UART ROM 下载模式，则应完全禁用该模式，或者永久设置为“安全下载模式”。安全下载模式永久性地将可用的命令限制在更新 SPI 配置、更改波特率、基本的 flash 写入和使用 `get_security_info` 命令返回当前启用的安全功能摘要。默认在发布模式下第一次启动时设置为安全下载模式。要完全禁用下载模式，请选择 :ref:`CONFIG_SECURE_UART_ROM_DL_MODE` 为“永久禁用 ROM 下载模式（推荐）”或在运行时调用 :cpp:func:`esp_efuse_disable_rom_download_mode`。
    - 启用 :doc:`安全启动<secure-boot-v2>` 作为额外的保护层，防止攻击者在启动前有选择地破坏 flash 中某部分。
 
+Enable Flash Encryption Externally
+----------------------------------
+
+In the process mentioned above, flash encryption related eFuses which ultimately enable flash encryption are programmed through the firmware bootloader. Alternatively, all the eFuses can be programmed with the help of ``espefuse`` tool. Please refer :ref:`enable-flash-encryption-externally` for more details.
+
 可能出现的错误
 -----------------
 
@@ -721,7 +738,7 @@ flash 加密范围
 - 通过函数 :cpp:func:`esp_flash_read` 读取不会被解密的原（加密）数据。
 - 通过函数 :cpp:func:`esp_flash_read_encrypted` 读取和解密数据。
 
-使用非易失性存储器 (NVS) API 存储的数据始终从 flash 加密的角度进行存储和读取解密。如有需要，则由库提供加密功能。详情可参考 :ref:`NVS 加密 <nvs_encryption>`。
+使用非易失性存储器 (NVS) API 存储的数据始终从 flash 加密的角度进行存储和读取解密。如有需要，则由库提供加密功能。详情可参考 :doc:`../api-reference/storage/nvs_encryption`。
 
 
 写入加密的 flash

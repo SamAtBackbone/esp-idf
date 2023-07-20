@@ -93,7 +93,9 @@ function(__build_set_default_build_specifications)
     unset(c_compile_options)
     unset(cxx_compile_options)
 
-    list(APPEND compile_definitions "_GNU_SOURCE")
+    list(APPEND compile_definitions "_GLIBCXX_USE_POSIX_SEMAPHORE"  # These two lines enable libstd++ to use
+                                    "_GLIBCXX_HAVE_POSIX_SEMAPHORE" # posix-semaphores from components/pthread
+                                    "_GNU_SOURCE")
 
     list(APPEND compile_options     "-ffunction-sections"
                                     "-fdata-sections"
@@ -465,6 +467,8 @@ macro(idf_build_process target)
     cmake_parse_arguments(_ "${options}" "${single_value}" "${multi_value}" ${ARGN})
 
     idf_build_set_property(BOOTLOADER_BUILD "${BOOTLOADER_BUILD}")
+
+    idf_build_set_property(IDF_TOOLCHAIN "${IDF_TOOLCHAIN}")
 
     # Check build target is specified. Since this target corresponds to a component
     # name, the target component is automatically added to the list of common component

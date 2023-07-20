@@ -41,6 +41,7 @@
 #define MXIC_ID                0xC2
 #define GD_Q_ID_HIGH           0xC8
 #define GD_Q_ID_MID            0x40
+#define GD_LQ_ID_MID           0x60
 #define GD_Q_ID_LOW            0x16
 
 #define ESP_BOOTLOADER_SPIFLASH_BP_MASK_ISSI    (BIT7 | BIT5 | BIT4 | BIT3 | BIT2)
@@ -124,6 +125,10 @@ esp_err_t bootloader_flash_erase_range(uint32_t start_addr, uint32_t size)
 #include "hal/mmu_hal.h"
 #include "hal/mmu_ll.h"
 #include "hal/cache_hal.h"
+
+#if CONFIG_IDF_TARGET_ESP32S3
+#include "esp32s3/rom/opi_flash.h"
+#endif
 static const char *TAG = "bootloader_flash";
 
 #if CONFIG_IDF_TARGET_ESP32
@@ -410,6 +415,45 @@ esp_err_t bootloader_flash_erase_range(uint32_t start_addr, uint32_t size)
     return spi_to_esp_err(rc);
 }
 
+#if CONFIG_SPI_FLASH_32BIT_ADDR_ENABLE
+void bootloader_flash_32bits_address_map_enable(esp_rom_spiflash_read_mode_t flash_mode)
+{
+    esp_rom_opiflash_spi0rd_t cache_rd = {};
+    switch (flash_mode) {
+    case ESP_ROM_SPIFLASH_DOUT_MODE:
+        cache_rd.addr_bit_len = 32;
+        cache_rd.dummy_bit_len = 8;
+        cache_rd.cmd = CMD_FASTRD_DUAL_4B;
+        cache_rd.cmd_bit_len = 8;
+        break;
+    case ESP_ROM_SPIFLASH_DIO_MODE:
+        cache_rd.addr_bit_len = 32;
+        cache_rd.dummy_bit_len = 4;
+        cache_rd.cmd = CMD_FASTRD_DIO_4B;
+        cache_rd.cmd_bit_len = 8;
+        break;
+    case ESP_ROM_SPIFLASH_QOUT_MODE:
+        cache_rd.addr_bit_len = 32;
+        cache_rd.dummy_bit_len = 8;
+        cache_rd.cmd = CMD_FASTRD_QUAD_4B;
+        cache_rd.cmd_bit_len = 8;
+        break;
+    case ESP_ROM_SPIFLASH_QIO_MODE:
+        cache_rd.addr_bit_len = 32;
+        cache_rd.dummy_bit_len = 6;
+        cache_rd.cmd = CMD_FASTRD_QIO_4B;
+        cache_rd.cmd_bit_len = 8;
+        break;
+    default:
+        assert(false);
+        break;
+    }
+    cache_hal_disable(CACHE_TYPE_ALL);
+    esp_rom_opiflash_cache_mode_config(flash_mode, &cache_rd);
+    cache_hal_enable(CACHE_TYPE_ALL);
+}
+#endif
+
 #endif // BOOTLOADER_BUILD
 
 
@@ -422,6 +466,11 @@ FORCE_INLINE_ATTR bool is_issi_chip(const esp_rom_spiflash_chip_t* chip)
 FORCE_INLINE_ATTR bool is_gd_q_chip(const esp_rom_spiflash_chip_t* chip)
 {
     return BYTESHIFT(chip->device_id, 2) == GD_Q_ID_HIGH && BYTESHIFT(chip->device_id, 1) == GD_Q_ID_MID && BYTESHIFT(chip->device_id, 0) >= GD_Q_ID_LOW;
+}
+
+FORCE_INLINE_ATTR bool is_gd_lq_chip(const esp_rom_spiflash_chip_t* chip)
+{
+    return BYTESHIFT(chip->device_id, 2) == GD_Q_ID_HIGH && BYTESHIFT(chip->device_id, 1) == GD_LQ_ID_MID && BYTESHIFT(chip->device_id, 0) >= GD_Q_ID_LOW;
 }
 
 FORCE_INLINE_ATTR bool is_mxic_chip(const esp_rom_spiflash_chip_t* chip)
@@ -451,7 +500,7 @@ esp_err_t IRAM_ATTR __attribute__((weak)) bootloader_flash_unlock(void)
         */
         sr1_bit_num = 8;
         new_status = status & (~ESP_BOOTLOADER_SPIFLASH_BP_MASK_ISSI);
-    } else if (is_gd_q_chip(&g_rom_flashchip)) {
+    } else if (is_gd_q_chip(&g_rom_flashchip) || is_gd_lq_chip(&g_rom_flashchip)) {
         /* The GD chips behaviour is to clear all bits in SR1 and clear bits in SR2 except QE bit.
            Use 01H to write SR1 and 31H to write SR2.
         */
@@ -510,6 +559,7 @@ IRAM_ATTR uint32_t bootloader_flash_execute_command_common(
     uint32_t old_ctrl_reg = SPIFLASH.ctrl.val;
     uint32_t old_user_reg = SPIFLASH.user.val;
     uint32_t old_user1_reg = SPIFLASH.user1.val;
+    uint32_t old_user2_reg = SPIFLASH.user2.val;
 #if CONFIG_IDF_TARGET_ESP32
     SPIFLASH.ctrl.val = SPI_WP_REG_M; // keep WP high while idle, otherwise leave DIO mode
 #else
@@ -556,6 +606,7 @@ IRAM_ATTR uint32_t bootloader_flash_execute_command_common(
     SPIFLASH.ctrl.val = old_ctrl_reg;
     SPIFLASH.user.val = old_user_reg;
     SPIFLASH.user1.val = old_user1_reg;
+    SPIFLASH.user2.val = old_user2_reg;
 
     uint32_t ret = SPIFLASH.data_buf[0];
     if (miso_len < 32) {
@@ -755,4 +806,41 @@ bool IRAM_ATTR bootloader_flash_is_octal_mode_enabled(void)
 #else
     return false;
 #endif
+}
+
+esp_rom_spiflash_read_mode_t bootloader_flash_get_spi_mode(void)
+{
+    esp_rom_spiflash_read_mode_t spi_mode = ESP_ROM_SPIFLASH_FASTRD_MODE;
+#if CONFIG_IDF_TARGET_ESP32
+    uint32_t spi_ctrl = REG_READ(SPI_CTRL_REG(0));
+    if (spi_ctrl & SPI_FREAD_QIO) {
+        spi_mode = ESP_ROM_SPIFLASH_QIO_MODE;
+    } else if (spi_ctrl & SPI_FREAD_QUAD) {
+        spi_mode = ESP_ROM_SPIFLASH_QOUT_MODE;
+    } else if (spi_ctrl & SPI_FREAD_DIO) {
+        spi_mode = ESP_ROM_SPIFLASH_DIO_MODE;
+    } else if (spi_ctrl & SPI_FREAD_DUAL) {
+        spi_mode = ESP_ROM_SPIFLASH_DOUT_MODE;
+    } else if (spi_ctrl & SPI_FASTRD_MODE) {
+        spi_mode = ESP_ROM_SPIFLASH_FASTRD_MODE;
+    } else {
+        spi_mode = ESP_ROM_SPIFLASH_SLOWRD_MODE;
+    }
+#else
+    uint32_t spi_ctrl = REG_READ(SPI_MEM_CTRL_REG(0));
+    if (spi_ctrl & SPI_MEM_FREAD_QIO) {
+        spi_mode = ESP_ROM_SPIFLASH_QIO_MODE;
+    } else if (spi_ctrl & SPI_MEM_FREAD_QUAD) {
+        spi_mode = ESP_ROM_SPIFLASH_QOUT_MODE;
+    } else if (spi_ctrl & SPI_MEM_FREAD_DIO) {
+        spi_mode = ESP_ROM_SPIFLASH_DIO_MODE;
+    } else if (spi_ctrl & SPI_MEM_FREAD_DUAL) {
+        spi_mode = ESP_ROM_SPIFLASH_DOUT_MODE;
+    } else if (spi_ctrl & SPI_MEM_FASTRD_MODE) {
+        spi_mode = ESP_ROM_SPIFLASH_FASTRD_MODE;
+    } else {
+        spi_mode = ESP_ROM_SPIFLASH_SLOWRD_MODE;
+    }
+#endif
+    return spi_mode;
 }
